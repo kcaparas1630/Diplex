@@ -4,3 +4,6 @@ samples/
 .venv/
 __pycache__/
 .pytest_cache/
+
+# Converted output from local smoke tests; never committed
+out/
