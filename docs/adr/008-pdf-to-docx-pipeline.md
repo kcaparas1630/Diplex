@@ -1,4 +1,8 @@
-# PDF to DOCX Conversion Workflow
+> Status: **Superseded** by [ADR 002](002-rendering-engine-scope.md) · 2026-10-30
+>
+> **Out of scope.** Diplex exports PDF only; PDF to DOCX was dropped after the proof of concept showed its output dropping and clipping words ([ADR 002](002-rendering-engine-scope.md)). Kept as a record of the design and as a starting point if the feature returns. Not maintained.
+
+# ADR 008: PDF to DOCX Conversion Workflow
 
 > Status: **Draft** · 2026-10-28 · based on "PDF → DOCX Conversion Workflow" by Kent Hudson Caparas
 > Changes from the original are marked **Change:**.

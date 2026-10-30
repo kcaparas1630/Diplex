@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && PYTHON_BIN=$(command -v python || command -v python3) && \"$PYTHON_BIN\" -m scripts.conventions --hook",
+            "timeout": 120,
+            "statusMessage": "Checking code conventions"
+          }
+        ]
+      }
+    ]
+  }
+}

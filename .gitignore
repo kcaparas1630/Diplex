@@ -1,0 +1,6 @@
+# Real test documents; never committed (see AGENTS.md)
+samples/
+
+.venv/
+__pycache__/
+.pytest_cache/

@@ -1,7 +1,9 @@
 # Diplex
 
-Document rendering and conversion for consumer apps: upload a DOCX or PDF, get page images to display and a JSON description of the content, and export to PDF or DOCX on demand.
+Open-source document rendering engine for consumer apps: send a DOCX or PDF, get back the PDF and an image of every page to display. The engine stores nothing; the SDK keeps files in your own bucket and records in your own database. Self-host it or use the hosted service, free either way.
 
-- [Architecture](docs/architecture.md)
-- [PDF to DOCX conversion workflow](docs/pdf-to-docx.md)
+- [Docs: start here](docs/README.md)
+- [Architecture](docs/adr/001-architecture.md)
 - [Guidance for coding agents](AGENTS.md)
+
+Licensed under the [MIT License](LICENSE).
