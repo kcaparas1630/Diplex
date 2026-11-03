@@ -44,7 +44,7 @@ consumer app (server)
 > Decision: [ADR 010](010-render-response-format.md)
 
 - **`POST /render` takes `multipart/form-data`** with the DOCX or PDF in one file part, not base64.
-- **Every upload gets its page images back,** as `multipart/form-data`: a JSON part with the page count and each page's `{ index, width, height }` in points, so a viewer can lay out pages before the images load, and one WebP image per page, in page order.
+- **Every upload gets its page images back,** as `multipart/form-data`: a JSON part listing each page's `{ index, width, height }` in points, in page order (its length is the page count), so a viewer can lay out pages before the images load, and one WebP image per page, in page order.
 - **A DOCX takes one extra step:** the engine converts it to PDF first and renders the images from that PDF. The response also carries that PDF, so the app can offer it for download.
 - **A PDF upload gets no PDF back.** The engine does not change it and the consumer already has it.
 - **Page images are WebP at 144 DPI,** lossless for text pages and lossy (about quality 80) for scanned or photo-heavy pages. On the samples, lossless was smaller on 90% of pages (median 70 KB), so a 100-page document is about 7 MB of images.
