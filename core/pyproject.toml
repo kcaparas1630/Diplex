@@ -5,11 +5,14 @@ description = "The Diplex rendering engine: a DOCX or PDF in, an image of every 
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.162.0",  # MIT: the HTTP API in api/, built on Starlette (BSD-3-Clause)
     "pydantic>=2.14.2",  # MIT: the API contract models in definition/
+    "uvicorn>=0.54.0",  # BSD-3-Clause: serves the API
 ]
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.16.0",  # BSD-3-Clause: FastAPI's TestClient in the API tests
     "pypdfium2>=5.14",  # Apache-2.0 / BSD-3-Clause: opens the converted PDFs in the sample tests
     "pytest>=9.1",  # MIT
 ]

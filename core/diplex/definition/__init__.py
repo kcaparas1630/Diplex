@@ -1,5 +1,6 @@
 """The API contract: Pydantic models and part names for the engine's responses."""
 
+from .health_status import HealthStatus
 from .render_manifest import PageSize, RenderManifest
 from .render_parts import (
     CONVERTED_PDF_FILENAME,
@@ -11,6 +12,7 @@ from .render_parts import (
 __all__ = [
     "CONVERTED_PDF_FILENAME",
     "RENDER_PART_MEDIA_TYPES",
+    "HealthStatus",
     "PageSize",
     "RenderManifest",
     "RenderPart",
