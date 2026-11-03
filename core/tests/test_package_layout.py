@@ -9,6 +9,7 @@ PACKAGE_FOLDERS = [
     "diplex.definition",
     "diplex.engine",
     "diplex.engine.docx_to_pdf",
+    "diplex.engine.pages",
     "diplex.api",
 ]
 
