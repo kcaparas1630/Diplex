@@ -1,8 +1,4 @@
-"""The API contract: Pydantic models and part names for what /render returns besides the files (ADR 010).
-
-FastAPI builds the engine's OpenAPI spec from these, and consumers code against that spec (convention 002).
-render_manifest holds the JSON part's models; render_parts names every part of the response.
-"""
+"""The API contract: Pydantic models and part names for the engine's responses."""
 
 from .render_manifest import PageSize, RenderManifest
 from .render_parts import (
