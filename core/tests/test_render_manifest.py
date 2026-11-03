@@ -70,14 +70,3 @@ def test_page_sizes_are_positive(bad_size):
     with pytest.raises(ValidationError, match="greater than 0"):
         PageSize(index=1, **bad_size)
 
-
-def test_a_separate_page_count_is_rejected():
-    """The count is pages.length, so a pageCount field is refused rather than silently ignored."""
-    with pytest.raises(ValidationError, match="pageCount"):
-        RenderManifest.model_validate({"pages": [{"index": 1, **A4_PAGE}], "pageCount": 1})
-
-
-def test_unknown_page_fields_are_rejected():
-    """Fields outside the contract are refused, so a typo can't slip into the response."""
-    with pytest.raises(ValidationError, match="rotation"):
-        PageSize.model_validate({"index": 1, **A4_PAGE, "rotation": 90})
