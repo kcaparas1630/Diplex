@@ -6,8 +6,10 @@ import pytest
 
 PACKAGE_FOLDERS = [
     "diplex",
+    "diplex.definition",
     "diplex.engine",
     "diplex.engine.docx_to_pdf",
+    "diplex.api",
 ]
 
 

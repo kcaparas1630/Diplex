@@ -1,7 +1,7 @@
 [project]
 name = "diplex-core"
 version = "0.1.0"
-description = "The Diplex rendering engine: a DOCX or PDF in, the PDF and an image of every page out."
+description = "The Diplex rendering engine: a DOCX or PDF in, an image of every page out, plus the converted PDF for a DOCX."
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = []
