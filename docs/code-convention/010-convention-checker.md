@@ -28,5 +28,5 @@
 
 - **Python checks parse the code,** so they are exact.
 - **TypeScript checks match lines,** not a syntax tree. They cover the usual one-line declaration forms and can miss unusual layouts, such as arrow functions whose parameters span lines.
-- **When `diplex-sdk`, `diplex-store` and `diplex-playground` are scaffolded,** ESLint (typescript-eslint, eslint-plugin-jsdoc and a boundaries rule) takes over the TypeScript checks, and Ruff's pydocstyle rules can join on the Python side. The checker keeps the rules no linter has (one line only, sibling imports, folder entries) and runs the linters from the same command.
+- **When `playground/` is scaffolded,** ESLint (typescript-eslint, eslint-plugin-jsdoc and a boundaries rule) takes over the TypeScript checks, and Ruff's pydocstyle rules can join on the Python side. The checker keeps the rules no linter has (one line only, sibling imports, folder entries) and runs the linters from the same command.
 - **Limits and word lists** live in `scripts/conventions/settings/`.

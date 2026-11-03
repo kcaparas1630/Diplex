@@ -4,12 +4,14 @@
 
 - [001 Architecture](adr/001-architecture.md): the current system
 - [002 Rendering engine scope](adr/002-rendering-engine-scope.md)
-- [003 Consumer-owned storage](adr/003-consumer-owned-storage.md)
+- [003 Consumer-owned storage](adr/003-consumer-owned-storage.md) (superseded)
 - [004 unoserver pool](adr/004-unoserver-pool.md)
 - [005 Fonts](adr/005-fonts.md)
-- [006 Hosted and self-hosted](adr/006-hosted-and-self-hosted.md)
+- [006 Hosted and self-hosted](adr/006-hosted-and-self-hosted.md) (superseded)
 - [007 MIT licence](adr/007-mit-licence.md)
 - [008 PDF to DOCX pipeline](adr/008-pdf-to-docx-pipeline.md) (superseded)
+- [009 Engine only](adr/009-engine-only.md)
+- [010 Render response format](adr/010-render-response-format.md)
 
 ## [Code Conventions](code-convention/index.md)
 

@@ -1,6 +1,8 @@
 # ADR 003: Storage Belongs to the Consumer
 
-> Status: **Accepted** · 2026-10-30
+> Status: **Superseded** by [ADR 009](009-engine-only.md) · 2026-10-30
+>
+> **Replaced.** Storage still belongs to the consumer, but there is no SDK: the consumer app stores the render results with its own code ([ADR 001](001-architecture.md) §5).
 
 ## Context
 

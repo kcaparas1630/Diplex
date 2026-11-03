@@ -1,6 +1,6 @@
 """Import rule for TypeScript: every relative import must respect the folder boundaries.
 
-Package imports (`@diplex/store`, `zod`) go through a package's own entry and are always allowed.
+Package imports (`react`, `zod`) go through a package's own entry and are always allowed.
 """
 
 from __future__ import annotations

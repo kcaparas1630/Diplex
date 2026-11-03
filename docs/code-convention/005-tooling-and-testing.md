@@ -3,7 +3,7 @@
 ## Tooling
 
 - **Python:** 3.11+, managed with `uv`; tests with `pytest`; HTTP API with FastAPI.
-- **TypeScript:** package manager and test runner to be decided when `diplex-sdk`, `diplex-store` and `diplex-playground` are scaffolded; the playground's web framework is also undecided. Types are generated from the OpenAPI spec with openapi-typescript; migrations with drizzle-kit.
+- **TypeScript:** only in `playground/`. Its package manager, test runner and web framework are decided with the playground stack ([ADR 001](../adr/001-architecture.md) §7).
 - **Docker:** the engine image builds from the root `Dockerfile`.
 - **Conventions:** `python -m scripts.conventions` checks conventions 007 to 009 and runs automatically as a Claude Code Stop hook ([convention 010](010-convention-checker.md)).
 - **Add the exact build, test and run commands to [AGENTS.md](../../AGENTS.md) once they exist.**

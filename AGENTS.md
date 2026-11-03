@@ -4,19 +4,19 @@ Guidance for coding agents working in this repository.
 
 ## Project
 
-Diplex is an open-source (MIT) document rendering engine for consumer apps. A consumer sends a DOCX or PDF and gets back the PDF and an image of every page to display. The engine stores nothing; the SDK keeps the files in the consumer's own bucket and the record in the consumer's own database.
+Diplex is an open-source (MIT), self-hosted document rendering engine for consumer apps. A consumer sends a DOCX or PDF over HTTP and always gets back an image of every page to display; a DOCX is converted to PDF first, and that PDF comes back too. The engine stores nothing; the consumer app keeps the results in its own bucket and database. There is no SDK ([ADR 009](docs/adr/009-engine-only.md)).
 
 - **Docs:** start at [docs/README.md](docs/README.md); everything is listed in [docs/index.md](docs/index.md).
 - **Architecture (source of truth):** [ADR 001](docs/adr/001-architecture.md). Each decision behind it has its own ADR.
 - **Rules:** the [code conventions](docs/code-convention/index.md). This file summarises them; the conventions win if they differ.
 - **When a change alters the design,** update ADR 001 and add or supersede an ADR in the same change ([convention 006](docs/code-convention/006-writing-docs.md)).
-- **Out of scope:** content extraction and PDF to DOCX ([ADR 002](docs/adr/002-rendering-engine-scope.md)). Do not reintroduce them without a new ADR.
+- **Out of scope:** content extraction and PDF to DOCX ([ADR 002](docs/adr/002-rendering-engine-scope.md)); an SDK, storage code and a hosted gateway ([ADR 009](docs/adr/009-engine-only.md)). Do not reintroduce them without a new ADR.
 
 ## Rules That Must Not Break
 
 - **The engine is stateless:** no database, storage, storage credentials or customer knowledge ([convention 002](docs/code-convention/002-boundaries-and-contract.md)).
-- **Storage belongs to the consumer:** only the SDK touches the bucket, server-side, with the consumer's credentials; only `createDocument` calls the engine; delete removes the files; never store presigned URLs.
-- **The Pydantic models in `definition/` are the API contract;** `types.gen.ts` is generated, never edited by hand. `diplex-sdk` imports `diplex-store`, never the reverse.
+- **Storage belongs to the consumer:** the engine never writes to a bucket, signs URLs or holds storage credentials; it returns the results and the consumer app stores them ([ADR 009](docs/adr/009-engine-only.md)).
+- **The Pydantic models in `definition/` are the API contract;** FastAPI's OpenAPI spec is what consumers code against. `/render` is `multipart/form-data` both ways, and a PDF upload gets no PDF back ([ADR 010](docs/adr/010-render-response-format.md)).
 - **Documents are untrusted input:** LibreOffice only through the recycled, supervised unoserver pool with no network; wiped scratch directories; size, page, macro and zip-bomb checks; no document contents in logs ([convention 003](docs/code-convention/003-untrusted-input.md)).
 - **MIT-compatible dependencies only,** no AGPL, licence recorded for each ([convention 004](docs/code-convention/004-dependencies-and-licensing.md)).
 
@@ -39,11 +39,11 @@ python -m scripts.conventions                  # convention check (also the Stop
 python -m pytest scripts/conventions/tests     # checker tests
 
 bash scripts/start-unoserver.sh                # builds the engine image and runs unoserver for the engine tests; Ctrl+C stops it
-cd diplex-core && uv sync                      # engine package and its test tools
-cd diplex-core && uv run pytest                # engine tests; the unoserver tests skip unless it is running
+cd core && uv sync                             # engine package and its test tools
+cd core && uv run pytest                       # engine tests; the unoserver tests skip unless it is running
 ```
 
-The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). Add the SDK and store commands here once they exist.
+The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). Add the playground commands here once it exists.
 
 ## Working Agreements
 

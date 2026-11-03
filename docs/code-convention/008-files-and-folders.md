@@ -16,7 +16,7 @@
 ## Imports
 
 - **No sibling imports.** A file never imports another file in the same folder. If two files need the same code, that code moves into a sub-folder, or the folder's entry composes the two.
-- **A file may import:** anything inside its own sub-folders, another folder's entry (a sibling or cousin folder, never a parent), and installed packages (`zod`, `@diplex/store`, `pydantic`).
+- **A file may import:** anything inside its own sub-folders, another folder's entry (a sibling or cousin folder, never a parent), and installed packages (`zod`, `fastapi`, `pydantic`).
 - **Only the entry file may import its own folder's files,** to compose and re-export them.
 - **Never import a parent folder.** Parents import their sub-folders, so importing upward creates cycles.
 - **Tests are exempt** and may import the module they test directly.

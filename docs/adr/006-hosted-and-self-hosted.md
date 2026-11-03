@@ -1,6 +1,8 @@
 # ADR 006: Hosted and Self-Hosted, One Engine Image
 
-> Status: **Accepted** · 2026-10-30
+> Status: **Superseded** by [ADR 009](009-engine-only.md) · 2026-10-30
+>
+> **Replaced.** Diplex is self-hosted only; there is no hosted service or gateway.
 
 ## Context
 

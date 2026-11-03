@@ -1,6 +1,6 @@
 # Diplex
 
-Open-source document rendering engine for consumer apps: send a DOCX or PDF, get back the PDF and an image of every page to display. The engine stores nothing; the SDK keeps files in your own bucket and records in your own database. Self-host it or use the hosted service, free either way.
+Open-source document rendering engine for consumer apps: send a DOCX or PDF over HTTP and get back an image of every page to display. A DOCX is converted to PDF first, and you get that PDF back too. The engine stores nothing; your app keeps the results in its own bucket and database. Self-hosted as one Docker image.
 
 - [Docs: start here](docs/README.md)
 - [Architecture](docs/adr/001-architecture.md)

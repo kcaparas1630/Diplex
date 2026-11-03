@@ -5,7 +5,7 @@ Rules for working in this repository. They apply to people and coding agents ali
 | # | Convention | Covers |
 |---|---|---|
 | [001](001-repository-layout.md) | Repository layout | where each package and folder lives |
-| [002](002-boundaries-and-contract.md) | Boundaries and the API contract | what the engine, SDK and store may do; Pydantic to OpenAPI to TypeScript |
+| [002](002-boundaries-and-contract.md) | Boundaries and the API contract | what the engine and the playground may do; the Pydantic models as the API contract |
 | [003](003-untrusted-input.md) | Documents are untrusted input | unoserver isolation, scratch directories, input limits, logging |
 | [004](004-dependencies-and-licensing.md) | Dependencies and licensing | MIT compatibility, no AGPL, fonts, current dependency licences |
 | [005](005-tooling-and-testing.md) | Tooling and testing | Python, TypeScript and Docker tooling; testing on real samples |
