@@ -13,6 +13,8 @@
 | unoserver | MIT | keeps LibreOffice running between conversions |
 | pypdfium2 | Apache-2.0 / BSD-3-Clause | PDF page rendering; opens converted PDFs in the engine tests |
 | Pillow | MIT-CMU | WebP encoding |
+| Pydantic (with pydantic-core, annotated-types, typing-inspection) | MIT | the API contract models in `definition/` |
+| typing-extensions | PSF-2.0 | installed with Pydantic |
 | Carlito, Caladea, Liberation, DejaVu, Noto fonts | OFL / Apache-2.0 / Bitstream Vera | rendering |
 | pytest | MIT | engine tests (development only) |
 | hatchling | MIT | builds the `diplex-core` package |
