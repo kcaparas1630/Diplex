@@ -1,4 +1,4 @@
-"""Unit tests for the RenderManifest and PageSize contract models: wire format, reading back, and validation."""
+"""Unit tests for RenderManifest and PageSize."""
 
 import json
 
@@ -12,12 +12,12 @@ A4_PAGE = {"width": 595.28, "height": 841.89}
 
 
 def two_page_manifest() -> RenderManifest:
-    """A manifest for a two-page document: US Letter, then A4."""
+    """A US Letter page, then an A4 page."""
     return RenderManifest(pages=[PageSize(index=1, **US_LETTER_PAGE), PageSize(index=2, **A4_PAGE)])
 
 
 def test_json_is_the_list_of_pages_and_nothing_else():
-    """On the wire the manifest is { pages: [{ index, width, height }, ...] }; the count is pages.length."""
+    """The JSON is just the list of pages."""
     wire_json = json.loads(two_page_manifest().model_dump_json())
 
     assert wire_json == {"pages": [{"index": 1, **US_LETTER_PAGE}, {"index": 2, **A4_PAGE}]}
@@ -25,14 +25,14 @@ def test_json_is_the_list_of_pages_and_nothing_else():
 
 
 def test_json_reads_back_into_an_equal_manifest():
-    """A manifest survives the round trip through its own JSON unchanged."""
+    """A manifest reads back from its own JSON unchanged."""
     original = two_page_manifest()
 
     assert RenderManifest.model_validate_json(original.model_dump_json()) == original
 
 
 def test_the_json_schema_requires_at_least_one_page():
-    """The schema FastAPI puts in the OpenAPI spec has only pages, with at least one entry."""
+    """The schema has only pages, with at least one entry."""
     schema = RenderManifest.model_json_schema()
 
     assert set(schema["properties"]) == {"pages"}
@@ -46,7 +46,7 @@ def test_the_json_schema_requires_at_least_one_page():
     ids=["out-of-order", "repeated", "not-starting-at-one", "gap"],
 )
 def test_pages_are_numbered_from_one_in_order(page_indexes):
-    """Pages must be numbered 1, 2, 3, ... with nothing missing, repeated or out of order."""
+    """Pages must be numbered 1, 2, 3, ... in order."""
     with pytest.raises(ValidationError, match="numbered 1, 2, 3"):
         RenderManifest(pages=[PageSize(index=index, **A4_PAGE) for index in page_indexes])
 
