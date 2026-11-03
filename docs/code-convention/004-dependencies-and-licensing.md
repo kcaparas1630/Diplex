@@ -15,6 +15,15 @@
 | Pillow | MIT-CMU | WebP encoding |
 | Pydantic (with pydantic-core, annotated-types, typing-inspection) | MIT | the API contract models in `definition/` |
 | typing-extensions | PSF-2.0 | installed with Pydantic |
+| FastAPI (with annotated-doc) | MIT | the HTTP API in `api/` |
+| Starlette | BSD-3-Clause | the web framework under FastAPI |
+| anyio, h11 | MIT | installed with FastAPI and uvicorn |
+| idna, click | BSD-3-Clause | installed with FastAPI and uvicorn |
+| colorama | BSD-3-Clause | installed with click on Windows only |
+| opentelemetry-api | Apache-2.0 | installed with FastAPI |
+| uvicorn | BSD-3-Clause | serves the API |
 | Carlito, Caladea, Liberation, DejaVu, Noto fonts | OFL / Apache-2.0 / Bitstream Vera | rendering |
 | pytest | MIT | engine tests (development only) |
+| httpx2 (with httpcore2) | BSD-3-Clause | FastAPI's `TestClient` in the API tests (development only) |
+| truststore | MIT | installed with httpx2 (development only) |
 | hatchling | MIT | builds the `diplex-core` package |
