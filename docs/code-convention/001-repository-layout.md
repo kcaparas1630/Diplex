@@ -1,6 +1,6 @@
 # Convention 001: Repository Layout
 
-Planned; not scaffolded yet.
+The planned layout. So far only `diplex-core/` with `engine/docx_to_pdf/` exists; each folder is added when it has code.
 
 ```
 Dockerfile                     builds the diplex-core engine image (Python, LibreOffice, unoserver, fonts)
