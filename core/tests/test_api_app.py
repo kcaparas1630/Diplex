@@ -1,4 +1,4 @@
-"""Tests for the engine's FastAPI app: how it is built, and that uvicorn serves it over real HTTP."""
+"""Tests for the engine's FastAPI app."""
 
 import json
 import socket
@@ -22,7 +22,7 @@ def test_uvicorns_import_string_finds_the_engine_app():
 
 
 def test_create_app_names_and_versions_the_engine():
-    """The app carries the engine's name and the diplex-core package version into the OpenAPI spec."""
+    """The app has the engine's name and package version."""
     engine_app = create_app()
 
     assert isinstance(engine_app, FastAPI)
@@ -31,12 +31,12 @@ def test_create_app_names_and_versions_the_engine():
 
 
 def test_create_app_returns_a_new_app_each_time():
-    """Each call builds its own app, so tests never share state through it."""
+    """Each call builds a new app."""
     assert create_app() is not create_app()
 
 
 def test_uvicorn_serves_health_over_http():
-    """Run by uvicorn on a localhost socket, the app answers GET /health with 200 and status ok."""
+    """uvicorn serves GET /health over real HTTP."""
     listener = socket.create_server(("127.0.0.1", 0))
     port = listener.getsockname()[1]
     server = uvicorn.Server(uvicorn.Config("diplex.api:app", log_level="warning"))

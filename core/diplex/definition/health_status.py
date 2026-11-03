@@ -1,4 +1,4 @@
-"""The body of a GET /health response."""
+"""The GET /health response body."""
 
 from typing import Literal
 
@@ -6,6 +6,6 @@ from pydantic import BaseModel, Field
 
 
 class HealthStatus(BaseModel):
-    """What GET /health returns while the engine process is up: {"status": "ok"}."""
+    """{"status": "ok"} while the engine is up."""
 
-    status: Literal["ok"] = Field(default="ok", description="Always ok; an engine that is down does not answer.")
+    status: Literal["ok"] = Field(default="ok", description="Always ok.")
