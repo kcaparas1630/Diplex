@@ -7,7 +7,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from diplex_core.engine.docx_to_pdf import (
+from diplex.engine.docx_to_pdf import (
     DEFAULT_UNOSERVER_PORT,
     DocxConversionError,
     UnoserverUnavailableError,

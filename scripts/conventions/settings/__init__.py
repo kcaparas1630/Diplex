@@ -13,7 +13,7 @@ EXCLUDED_DIRECTORIES = frozenset({"node_modules", "__pycache__", "dist", "build"
 TEST_FOLDER_NAMES = frozenset({"tests", "test", "__tests__"})
 
 # Where absolute Python imports are looked up, relative to the repository root.
-PYTHON_SOURCE_ROOTS = ("core/src", ".")
+PYTHON_SOURCE_ROOTS = ("core", ".")
 
 # A folder's public entry: other folders import the folder through this file only.
 ENTRY_FILE_NAMES = frozenset({"__init__.py", "__main__.py", "index.ts", "index.tsx", "index.js", "index.mjs"})

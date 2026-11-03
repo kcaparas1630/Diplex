@@ -9,7 +9,7 @@ from pathlib import Path
 import pypdfium2
 import pytest
 
-from diplex_core.engine.docx_to_pdf import DEFAULT_UNOSERVER_PORT, DocxConversionError, convert_docx_to_pdf
+from diplex.engine.docx_to_pdf import DEFAULT_UNOSERVER_PORT, DocxConversionError, convert_docx_to_pdf
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
 

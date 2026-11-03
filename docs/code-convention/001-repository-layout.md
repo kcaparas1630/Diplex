@@ -5,8 +5,8 @@ The planned layout. So far only `core/` with `engine/docx_to_pdf/` exists; each 
 ```
 Dockerfile                     builds the engine image, tagged diplex-core (Python, LibreOffice, unoserver, fonts)
 LICENSE                        MIT
-core/                          Python engine (uv): the whole product
-  src/diplex_core/
+core/                          Python engine (uv project diplex-core): the whole product
+  diplex/                      the importable package: import diplex
     definition/                Pydantic models: the API contract (source of the OpenAPI spec)
     engine/
       docx_to_pdf/             unoserver pool and supervision
@@ -24,6 +24,7 @@ scripts/
 samples/                       real test documents (git-ignored, never committed)
 ```
 
-- **The folder is `core`, but the Python project stays `diplex-core` and the import name `diplex_core`,** because package names are global: a top-level `core` import could clash with any other installed package. The Docker image keeps the `diplex-core` tag for the same reason.
+- **The folder says which part of the repository this is; the package says whose code it is.** `core/` holds the project (`pyproject.toml`, `uv.lock`, `tests/`), and the code inside it is the `diplex` package, imported as `import diplex`. Package names are global once installed, so a bare `core` package could clash with another one. The Docker image keeps the `diplex-core` tag for the same reason.
+- **The package sits directly in `core/`, with no `src/` folder.** The src layout mainly protects libraries published to PyPI from packaging mistakes ([PyPA](https://packaging.python.org/discussions/src-layout-vs-flat-layout/)); Diplex ships as a Docker image, whose smoke test catches those.
 - **There is no SDK, client or table package,** and no hosted gateway ([ADR 009](../adr/009-engine-only.md)).
 - **`samples/` is git-ignored** and must never be committed.

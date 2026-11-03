@@ -1,13 +1,13 @@
-"""Checks that every folder in diplex_core imports and has a docstring."""
+"""Checks that every folder in the diplex package imports and has a docstring."""
 
 import importlib
 
 import pytest
 
 PACKAGE_FOLDERS = [
-    "diplex_core",
-    "diplex_core.engine",
-    "diplex_core.engine.docx_to_pdf",
+    "diplex",
+    "diplex.engine",
+    "diplex.engine.docx_to_pdf",
 ]
 
 
