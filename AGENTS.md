@@ -37,9 +37,17 @@ Diplex is an open-source (MIT) document rendering engine for consumer apps. A co
 ```
 python -m scripts.conventions                  # convention check (also the Stop hook, with --hook)
 python -m pytest scripts/conventions/tests     # checker tests
+
+docker build -t diplex-core .                  # engine image: LibreOffice, unoserver, fonts
+cd diplex-core && uv sync                      # engine package and its test tools
+cd diplex-core && uv run pytest                # engine tests; the unoserver tests skip unless it is running
+
+# Local development only: unoserver for the engine tests, published on this machine's loopback only.
+# Inside the container it listens on all interfaces, because Docker cannot forward to the container's loopback.
+docker run --rm -p 127.0.0.1:2003:2003 diplex-core unoserver --interface 0.0.0.0 --uno-interface 127.0.0.1
 ```
 
-Add the engine, SDK and store commands here once they exist.
+The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). Add the SDK and store commands here once they exist.
 
 ## Working Agreements
 

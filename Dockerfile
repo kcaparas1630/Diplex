@@ -3,10 +3,13 @@
 
 FROM debian:trixie-slim
 
-# LibreOffice Writer without the GUI, its Python bridge, and the metric-compatible font set
+# LibreOffice Writer without the GUI, its Python bridge, and the metric-compatible font set.
+# The nogui package leaves out Writer's UI definitions, but Writer needs them to open a DOCX
+# that has comments: without libreoffice-uiconfig-writer it refuses such files or crashes.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       libreoffice-writer-nogui \
+      libreoffice-uiconfig-writer \
       python3-uno \
       python3-venv \
       fonts-crosextra-carlito \

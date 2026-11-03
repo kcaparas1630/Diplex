@@ -111,7 +111,7 @@ consumer server
 - **Instances are recycled and supervised:** restarted after a set number of conversions (`--stop-after`, because memory is not reclaimed after large files), killed on a conversion timeout (`--conversion-timeout`), and restarted by a supervisor when they exit, since unoserver does not restart LibreOffice itself.
 - **Fonts:** the metric-compatible families (Carlito, Caladea, Liberation) plus DejaVu and Noto, installed as packages. Debian's stock fontconfig already maps Calibri, Cambria, Arial, Times New Roman and Courier New to them. Line breaks and page counts stay close to Word's; the glyphs differ, and fonts without a clone reflow. Diplex does not promise Word fidelity.
 - **PDF to page images:** pypdfium2 (Apache-2.0 / BSD-3-Clause) at 144 DPI, encoded as WebP with Pillow.
-- **Documents are untrusted input:** size and page limits, macro rejection, zip-bomb checks, no network for LibreOffice, a per-job scratch directory wiped afterwards, and no document contents in logs. Scanned PDFs render as images like any other PDF.
+- **Documents are untrusted input:** size and page limits, macro rejection, zip-bomb checks, LibreOffice's DOCX import filter only (never format detection, so other formats are refused), no network for LibreOffice, a per-job scratch directory wiped afterwards, and no document contents in logs. Scanned PDFs render as images like any other PDF.
 
 ## 9. Open Decisions
 

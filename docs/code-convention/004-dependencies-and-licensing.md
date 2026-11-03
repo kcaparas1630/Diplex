@@ -11,6 +11,8 @@
 |---|---|---|
 | LibreOffice | MPL-2.0 | DOCX to PDF, run unmodified as a separate process |
 | unoserver | MIT | keeps LibreOffice running between conversions |
-| pypdfium2 | Apache-2.0 / BSD-3-Clause | PDF page rendering |
+| pypdfium2 | Apache-2.0 / BSD-3-Clause | PDF page rendering; opens converted PDFs in the engine tests |
 | Pillow | MIT-CMU | WebP encoding |
 | Carlito, Caladea, Liberation, DejaVu, Noto fonts | OFL / Apache-2.0 / Bitstream Vera | rendering |
+| pytest | MIT | engine tests (development only) |
+| hatchling | MIT | builds the `diplex-core` package |
