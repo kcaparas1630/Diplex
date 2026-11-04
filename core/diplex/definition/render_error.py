@@ -12,6 +12,7 @@ class RenderErrorCode(StrEnum):
     UNSUPPORTED_DOCUMENT_TYPE = "unsupported_document_type"  # 415: the upload is not a PDF or a DOCX
     UNREADABLE_PDF = "unreadable_pdf"  # 422: the PDF is damaged, encrypted or not really a PDF
     PAGE_TOO_LARGE = "page_too_large"  # 422: a page's image would be over the pixel limits
+    CONVERTER_UNAVAILABLE = "converter_unavailable"  # 503: unoserver, which converts a DOCX, is not answering
     INTERNAL_ERROR = "internal_error"  # 500: the engine failed; its log has the job ID from the message
 
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from diplex.engine import document_render, render_pdf
+from diplex.engine import document_render, render_docx, render_pdf
 from diplex.engine.document_render import PDFIUM_LOCK
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
@@ -70,3 +70,28 @@ def test_the_lock_is_let_go_when_rendering_fails(monkeypatch):
     with pytest.raises(RuntimeError):
         render_pdf(b"%PDF-1.7 stand-in")
     assert not PDFIUM_LOCK.locked()
+
+
+def test_a_docx_is_rendered_from_the_pdf_it_became(monkeypatch):
+    """render_docx renders unoserver's PDF and keeps it, so the images and the PDF match page for page."""
+    converted_pdf = _sample_bytes("irs-form-1040-2025.pdf")  # stands in for unoserver's output
+    lock_held_while_converting = []
+
+    def fake_convert_docx_to_pdf(docx_bytes):
+        """Record whether PDFium is locked during the conversion, and return the stand-in PDF."""
+        lock_held_while_converting.append(PDFIUM_LOCK.locked())
+        return converted_pdf
+
+    monkeypatch.setattr(document_render, "convert_docx_to_pdf", fake_convert_docx_to_pdf)
+
+    rendered_document = render_docx(b"PK stand-in DOCX")
+
+    assert rendered_document.converted_pdf == converted_pdf
+    assert rendered_document.page_sizes == render_pdf(converted_pdf).page_sizes
+    assert len(rendered_document.page_webps) == 2
+    assert lock_held_while_converting == [False]  # PDF uploads keep rendering while LibreOffice works
+
+
+def test_a_pdf_upload_has_no_converted_pdf():
+    """A PDF upload gets no PDF back (ADR 010)."""
+    assert render_pdf(_sample_bytes("irs-form-1040-2025.pdf")).converted_pdf is None
