@@ -37,6 +37,8 @@ Diplex is an open-source (MIT), self-hosted document rendering engine for consum
 ```
 python -m scripts.conventions                  # convention check (also the Stop hook, with --hook)
 python -m pytest scripts/conventions/tests     # checker tests
+python -m scripts.smoke_render http://127.0.0.1:8000   # renders every sample through a running engine; prints a Markdown table
+python -m pytest scripts/smoke_render/tests    # smoke test script tests
 
 docker build -t diplex-core .                  # builds the engine image from the root Dockerfile
 bash scripts/start-unoserver.sh                # builds the engine image and runs unoserver for the engine tests; Ctrl+C stops it
