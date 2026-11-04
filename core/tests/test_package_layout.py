@@ -8,6 +8,7 @@ PACKAGE_FOLDERS = [
     "diplex",
     "diplex.definition",
     "diplex.engine",
+    "diplex.engine.checks",
     "diplex.engine.docx_to_pdf",
     "diplex.engine.pages",
     "diplex.engine.pdf_loading",
