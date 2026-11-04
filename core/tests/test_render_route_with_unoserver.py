@@ -3,6 +3,7 @@
 import io
 import math
 import socket
+import zipfile
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
@@ -12,7 +13,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from diplex.api import create_app
-from diplex.definition import RenderManifest
+from diplex.definition import RenderError, RenderErrorCode, RenderManifest
 from diplex.engine.docx_to_pdf import DEFAULT_UNOSERVER_PORT
 from diplex.engine.pages import read_page_sizes
 
@@ -66,3 +67,41 @@ def test_a_real_docx_comes_back_as_pages_and_the_pdf_they_were_rendered_from():
         assert page_part.get_filename() == f"page-{page_size.index:04d}.webp"
         with Image.open(io.BytesIO(page_part.get_payload(decode=True))) as page_image:
             assert page_image.size == (math.ceil(page_size.width * 2), math.ceil(page_size.height * 2))
+
+
+def _without_part(docx_bytes: bytes, part_name: str) -> bytes:
+    """Copy a DOCX without one of its parts; its [Content_Types].xml still lists it."""
+    source_package = zipfile.ZipFile(io.BytesIO(docx_bytes))
+    package_buffer = io.BytesIO()
+    with zipfile.ZipFile(package_buffer, "w", zipfile.ZIP_DEFLATED) as damaged_package:
+        for item in source_package.infolist():
+            if item.filename != part_name:
+                damaged_package.writestr(item, source_package.read(item))
+    return package_buffer.getvalue()
+
+
+def test_the_cornell_budget_justification_now_renders():
+    """The Cornell DOCX the benchmark couldn't load (it has comments) converts and renders."""
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/render",
+            files={"document": ("budget.docx", _sample_bytes("cornell-sponsored-budget-justification.docx"))},
+        )
+
+    assert response.status_code == 200
+    manifest_part, *page_parts, pdf_part = _response_parts(response)
+    assert len(page_parts) == len(RenderManifest.model_validate_json(manifest_part.get_payload(decode=True)).pages)
+    assert pdf_part.get_payload(decode=True).startswith(b"%PDF-")
+
+
+def test_a_docx_libreoffice_cannot_load_gets_422():
+    """A real DOCX missing its document part passes the type check, but LibreOffice can't load it: 422."""
+    damaged_docx = _without_part(_sample_bytes("siu-dissertation-template.docx"), "word/document.xml")
+
+    with TestClient(create_app()) as client:
+        response = client.post("/render", files={"document": ("damaged.docx", damaged_docx)})
+
+    assert response.status_code == 422
+    error = RenderError.model_validate_json(response.content)
+    assert error.code is RenderErrorCode.DOCX_CONVERSION_FAILED
+    assert "<remote file>" not in error.message

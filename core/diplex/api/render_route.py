@@ -21,6 +21,7 @@ from diplex.definition import (
 )
 from diplex.engine import (
     DocumentType,
+    DocxConversionError,
     PageTooLargeError,
     RenderedDocument,
     UnoserverUnavailableError,
@@ -36,13 +37,16 @@ from .job_log import RenderJob, log_unexpected_error, logged_render_job
 
 render_router = APIRouter(tags=["render"])
 
-# Each engine error, the status it answers with (RFC 9110 §15.5) and its code in the contract.
+# Each engine error, the status it answers with (RFC 9110 §15.5 and §15.6) and its code in the contract.
 ERROR_RESPONSES = {
     UnsupportedDocumentError: (HTTP_415_UNSUPPORTED_MEDIA_TYPE, RenderErrorCode.UNSUPPORTED_DOCUMENT_TYPE),
     UnreadablePdfError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.UNREADABLE_PDF),
     PageTooLargeError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.PAGE_TOO_LARGE),
+    DocxConversionError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_CONVERSION_FAILED),
     UnoserverUnavailableError: (HTTP_503_SERVICE_UNAVAILABLE, RenderErrorCode.CONVERTER_UNAVAILABLE),
 }
+# unoserver's own message names Python classes and LibreOffice internals; the consumer gets a plain one instead.
+FIXED_MESSAGES = {DocxConversionError: "LibreOffice could not load or convert the DOCX"}
 
 
 @render_router.post("/render", summary="Render each page of a DOCX or PDF as a WebP image")
@@ -54,7 +58,8 @@ def render_upload(document: Annotated[UploadFile, File(description="The DOCX or 
             response_body, content_type = _render(document_bytes, render_job)
         except tuple(ERROR_RESPONSES) as error:
             status_code, error_code = ERROR_RESPONSES[type(error)]
-            return _error_response(render_job, status_code, error_code, str(error))  # engine messages hold no contents
+            message = FIXED_MESSAGES.get(type(error), str(error))  # engine messages hold no document contents
+            return _error_response(render_job, status_code, error_code, message)
         except Exception as error:
             # Answered here, so the server never logs the error's message, which could quote the document.
             log_unexpected_error(render_job, error)

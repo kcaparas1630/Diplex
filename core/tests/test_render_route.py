@@ -12,7 +12,7 @@ from PIL import Image
 from diplex.api import create_app, render_route
 from diplex.api.upload_limit_setting import MAX_UPLOAD_BYTES_VARIABLE
 from diplex.definition import RenderError, RenderErrorCode, RenderManifest
-from diplex.engine import PageTooLargeError, UnoserverUnavailableError, document_render
+from diplex.engine import DocxConversionError, PageTooLargeError, UnoserverUnavailableError, document_render
 from diplex.engine.pages import read_page_sizes
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
@@ -128,6 +128,25 @@ def test_a_docx_gets_503_when_unoserver_is_not_answering(monkeypatch):
 
     assert response.status_code == 503
     assert _error(response).code is RenderErrorCode.CONVERTER_UNAVAILABLE
+
+
+def test_a_docx_libreoffice_cannot_load_gets_422_with_a_plain_message(monkeypatch):
+    """A failed conversion gets 422 docx_conversion_failed, without unoserver's message about LibreOffice's internals."""
+    unoserver_message = "<class 'RuntimeError'>:Could not load document <remote file> using the MS Word 2007 XML filter."
+
+    def failing_conversion(docx_bytes):
+        """Fail as convert_docx_to_pdf does when LibreOffice can't load the document."""
+        raise DocxConversionError(f"unoserver could not convert the document: {unoserver_message}")
+
+    monkeypatch.setattr(document_render, "convert_docx_to_pdf", failing_conversion)
+
+    response = _post_render(_sample_bytes("siu-dissertation-template.docx"), file_name="thesis.docx")
+
+    assert response.status_code == 422
+    assert _error(response) == RenderError(
+        code=RenderErrorCode.DOCX_CONVERSION_FAILED, message="LibreOffice could not load or convert the DOCX"
+    )
+    assert b"RuntimeError" not in response.content
 
 
 def test_a_pdf_pdfium_cannot_read_gets_422():
