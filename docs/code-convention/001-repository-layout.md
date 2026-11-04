@@ -1,6 +1,6 @@
 # Convention 001: Repository Layout
 
-The planned layout. So far `core/diplex/` has its three top-level folders (`definition/`, `engine/`, `api/`), `api/form_data/`, `engine/checks/`, `engine/docx_to_pdf/`, `engine/pdf_loading/` and `engine/pages/`; each deeper folder is added when it has code.
+The planned layout. So far `core/diplex/` has its three top-level folders (`definition/`, `engine/`, `api/`), `api/form_data/`, `api/job_log/`, `engine/checks/`, `engine/docx_to_pdf/`, `engine/pdf_loading/` and `engine/pages/`; each deeper folder is added when it has code.
 
 ```
 Dockerfile                     builds the engine image, tagged diplex-core (Python, LibreOffice, unoserver, fonts)
@@ -15,6 +15,7 @@ core/                          Python engine (uv project diplex-core): the whole
       checks/                  input checks: document type, size, pages, macros, zip bombs
     api/                       FastAPI routes: health and render
       form_data/               builds multipart/form-data response bodies
+      job_log/                 logs each render job without its contents
   tests/
 playground/                    sample consumer app: calls the engine over HTTP and stores the results
                                in its own bucket and database (never published)

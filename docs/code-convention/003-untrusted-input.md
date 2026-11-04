@@ -6,4 +6,4 @@
 - **Work in a per-job scratch directory and wipe it afterwards.**
 - **Reject macro-enabled files, enforce file size and page limits, and guard against zip bombs** (DOCX is a zip). The size limit (`DIPLEX_MAX_UPLOAD_BYTES`) is enforced by `api/upload_size_limit.py` on the declared Content-Length and again as the body arrives, so a chunked upload can't get past it.
 - **Refuse a page whose image would be too large before rendering anything.** A PDF can declare any page size, and at 144 DPI a 200-inch page is a 2.5 GB bitmap. A side over 16,383 pixels (113.7 inches) is refused too, since WebP can't hold it ([WebP FAQ](https://developers.google.com/speed/webp/faq)). The limits are `MAX_PAGE_PIXELS` and `MAX_PAGE_SIDE_PIXELS` in `engine/pages/page_images.py`.
-- **Never log document contents.**
+- **Never log document contents.** Each render job logs one line (`api/job_log/`): its ID, source type, size in bytes, page count, duration and outcome, and never the file name. An unexpected error logs its type and stack but not its message, which can quote the document, and the route answers it with a 500 so the server doesn't log it either.
