@@ -1,8 +1,13 @@
-"""The JSON part of a /render response: each page's size in points."""
+"""A successful /render response: its JSON part with each page's size, and its parts by name for the OpenAPI spec."""
 
-from typing import Self
+from typing import Annotated, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, WithJsonSchema, model_validator
+
+# OpenAPI 3.1 marks a binary part with contentMediaType; `format: binary` no longer means anything there (OAS 3.1.1 §4.8.14.3).
+WebpImagePart = Annotated[bytes, WithJsonSchema({"type": "string", "contentMediaType": "image/webp"})]
+# Optional: a PDF upload's response has no pdf part at all, rather than an empty one.
+OptionalPdfFilePart = Annotated[bytes | None, WithJsonSchema({"type": "string", "contentMediaType": "application/pdf"})]
 
 
 class PageSize(BaseModel):
@@ -25,3 +30,20 @@ class RenderManifest(BaseModel):
         if [page.index for page in self.pages] != expected_indexes:
             raise ValueError("pages must be numbered 1, 2, 3, ... in order, one entry per page")
         return self
+
+
+class RenderResponseParts(BaseModel):
+    """A successful /render response's multipart/form-data parts, by name: what `await response.formData()` holds."""
+
+    manifest: RenderManifest = Field(
+        description="JSON part, sent first, with no file name, so formData().get('manifest') is a string to JSON.parse."
+    )
+    page: list[WebpImagePart] = Field(
+        description="One lossless WebP per page, in page order, every part named page; "
+        "file names page-0001.webp, page-0002.webp, ... Read them with formData().getAll('page')."
+    )
+    pdf: OptionalPdfFilePart = Field(
+        default=None,
+        description="Only for a DOCX upload: the PDF it was converted to, named document.pdf.",
+        json_schema_extra=lambda field_schema: field_schema.pop("default", None),  # absent, not null
+    )

@@ -173,12 +173,33 @@ def test_a_page_too_large_gets_422_with_its_page_number(monkeypatch):
     assert "page 2" in _error(response).message
 
 
-def test_a_request_without_the_document_part_gets_422():
-    """A form without a document part fails FastAPI's validation of the request."""
+def test_a_request_without_the_document_part_gets_422_invalid_request():
+    """A form without a document part gets 422 invalid_request, not FastAPI's answer that quotes what was sent."""
     with TestClient(create_app()) as client:
-        response = client.post("/render", files={"wrong_name": ("upload.pdf", b"%PDF-1.7", "application/pdf")})
+        response = client.post("/render", data={"wrong_name": "Text from the document"})
 
     assert response.status_code == 422
+    assert _error(response).code is RenderErrorCode.INVALID_REQUEST
+    assert b"Text from the document" not in response.content
+
+
+def test_a_body_that_is_not_multipart_gets_400_invalid_request():
+    """A multipart content type over a body FastAPI can't parse gets 400 invalid_request."""
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/render", content=b"not multipart at all", headers={"content-type": "multipart/form-data; boundary=missing"}
+        )
+
+    assert response.status_code == 400
+    assert _error(response).code is RenderErrorCode.INVALID_REQUEST
+
+
+def test_other_http_errors_keep_fastapis_answer():
+    """A route that doesn't exist still gets FastAPI's 404."""
+    with TestClient(create_app()) as client:
+        response = client.get("/no-such-route")
+
+    assert (response.status_code, response.json()) == (404, {"detail": "Not Found"})
 
 
 def test_an_upload_over_the_limit_gets_413_without_rendering(monkeypatch):

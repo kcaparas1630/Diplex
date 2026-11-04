@@ -10,7 +10,7 @@ Do not break these without an ADR that changes [ADR 001](../adr/001-architecture
 
 ## The API Contract
 
-- **The Pydantic models in `core/diplex/definition/` are the API contract.** FastAPI generates the OpenAPI spec from them, and consumers code against that spec. Change the models; never hand-edit the spec.
+- **The Pydantic models in `core/diplex/definition/` are the API contract.** FastAPI generates the OpenAPI spec from them, and consumers code against that spec. Change the models; never hand-edit the spec. The published copy is [docs/openapi.json](../openapi.json), rewritten by `python -m diplex.openapi_export` (see AGENTS.md); a test fails when it is out of date.
 - **`/render` speaks `multipart/form-data` both ways** ([ADR 010](../adr/010-render-response-format.md)): page sizes as JSON and one WebP per page for every upload, plus the converted PDF when the upload is a DOCX.
 - **There is no SDK or client package.** Do not add one without a new ADR.
 

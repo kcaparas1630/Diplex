@@ -13,6 +13,10 @@
 - [009 Engine only](adr/009-engine-only.md)
 - [010 Render response format](adr/010-render-response-format.md)
 
+## [OpenAPI Spec](openapi.json)
+
+- [openapi.json](openapi.json): the engine's API contract, generated from `core/diplex/definition/`
+
 ## [Code Conventions](code-convention/index.md)
 
 - [001 Repository layout](code-convention/001-repository-layout.md)
