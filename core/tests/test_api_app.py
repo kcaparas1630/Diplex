@@ -7,11 +7,14 @@ import time
 import urllib.request
 from importlib.metadata import version
 
+import pytest
 import uvicorn
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from uvicorn.importer import import_from_string
 
 from diplex.api import app, create_app
+from diplex.api.upload_limit_setting import MAX_UPLOAD_BYTES_VARIABLE
 
 SERVER_START_TIMEOUT_SECONDS = 10
 
@@ -33,6 +36,26 @@ def test_create_app_names_and_versions_the_engine():
 def test_create_app_returns_a_new_app_each_time():
     """Each call builds a new app."""
     assert create_app() is not create_app()
+
+
+def test_create_app_limits_uploads_to_the_configured_size(monkeypatch):
+    """The app answers 413 to a body over DIPLEX_MAX_UPLOAD_BYTES, on any route, before routing."""
+    monkeypatch.setenv(MAX_UPLOAD_BYTES_VARIABLE, "10")
+
+    with TestClient(create_app()) as client:
+        over_limit_response = client.post("/health", content=b"x" * 11)
+        within_limit_response = client.post("/health", content=b"x" * 10)
+
+    assert over_limit_response.status_code == 413
+    assert within_limit_response.status_code == 405  # /health is GET only, so the body got past the limit
+
+
+def test_create_app_refuses_an_unreadable_limit(monkeypatch):
+    """An engine started with a limit it can't read fails at once, instead of running unlimited."""
+    monkeypatch.setenv(MAX_UPLOAD_BYTES_VARIABLE, "50MB")
+
+    with pytest.raises(ValueError, match=MAX_UPLOAD_BYTES_VARIABLE):
+        create_app()
 
 
 def test_uvicorn_serves_health_over_http():
