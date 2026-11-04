@@ -4,6 +4,7 @@
 - **No AGPL dependencies** (for example PyMuPDF). GPL tools only as separate processes.
 - **Check the licence before adding any dependency,** and record it in the relevant doc.
 - **Fonts shipped in the image must allow redistribution and embedding in PDFs.**
+- **Keep the FreeType credit in the README.** FreeType comes with LibreOffice in the engine image and inside the pypdfium2 and Pillow wheels, and its licence (FTL) requires a binary distribution to say it is based in part on the FreeType Team's work.
 
 ## Current Engine Dependencies
 

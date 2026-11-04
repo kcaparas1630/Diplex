@@ -7,3 +7,9 @@ Open-source document rendering engine for consumer apps: send a DOCX or PDF over
 - [Guidance for coding agents](AGENTS.md)
 
 Licensed under the [MIT License](LICENSE).
+
+## Third-Party Software
+
+Diplex is built on open-source software under its own licences; [convention 004](docs/code-convention/004-dependencies-and-licensing.md) lists them.
+
+This software is based in part on the work of the FreeType Team ([freetype.org](https://freetype.org)). FreeType comes with LibreOffice in the engine image, and inside the pypdfium2 and Pillow packages.
