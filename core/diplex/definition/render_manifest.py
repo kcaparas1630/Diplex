@@ -9,8 +9,8 @@ class PageSize(BaseModel):
     """A page's number and size in points."""
 
     index: int = Field(ge=1, description="Page number, from 1.")
-    width: float = Field(gt=0, description="Width in points.")
-    height: float = Field(gt=0, description="Height in points.")
+    width: float = Field(gt=0, description="Width in points as the page is shown (rotation applied), to 0.01 pt.")
+    height: float = Field(gt=0, description="Height in points as the page is shown (rotation applied), to 0.01 pt.")
 
 
 class RenderManifest(BaseModel):

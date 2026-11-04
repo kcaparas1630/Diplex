@@ -44,7 +44,7 @@ consumer app (server)
 > Decision: [ADR 010](010-render-response-format.md)
 
 - **`POST /render` takes `multipart/form-data`** with the DOCX or PDF in one file part, not base64.
-- **Every upload gets its page images back,** as `multipart/form-data`: a JSON part listing each page's `{ index, width, height }` in points, in page order (its length is the page count), so a viewer can lay out pages before the images load, and one WebP image per page, in page order.
+- **Every upload gets its page images back,** as `multipart/form-data`: a JSON part listing each page's `{ index, width, height }` in points, in page order (its length is the page count), so a viewer can lay out pages before the images load. Sizes are as the page is shown (its crop box, with `/Rotate` applied, so they match the image) and rounded to 0.01 pt; and one WebP image per page, in page order.
 - **A DOCX takes one extra step:** the engine converts it to PDF first and renders the images from that PDF. The response also carries that PDF, so the app can offer it for download.
 - **A PDF upload gets no PDF back.** The engine does not change it and the consumer already has it.
 - **Page images are WebP at 144 DPI,** lossless for text pages and lossy (about quality 80) for scanned or photo-heavy pages. On the samples, lossless was smaller on 90% of pages (median 70 KB), so a 100-page document is about 7 MB of images.
@@ -74,7 +74,7 @@ consumer app (server)
 - **DOCX to PDF:** LibreOffice driven by a pool of [unoserver](https://github.com/unoconv/unoserver) instances (MIT). Each instance keeps one LibreOffice running, handles one conversion at a time, has its own profile, and binds only to localhost.
 - **Instances are recycled and supervised:** restarted after a set number of conversions (`--stop-after`, because memory is not reclaimed after large files), killed on a conversion timeout (`--conversion-timeout`), and restarted by a supervisor when they exit, since unoserver does not restart LibreOffice itself.
 - **Fonts:** the metric-compatible families (Carlito, Caladea, Liberation) plus DejaVu and Noto, installed as packages. Debian's stock fontconfig already maps Calibri, Cambria, Arial, Times New Roman and Courier New to them. Line breaks and page counts stay close to Word's; the glyphs differ, and fonts without a clone reflow. Diplex does not promise Word fidelity.
-- **PDF to page images, for every upload:** pypdfium2 (Apache-2.0 / BSD-3-Clause) renders every page of the PDF (the converted one for a DOCX, the upload itself for a PDF) at 144 DPI, encoded as WebP with Pillow. The images and the PDF therefore always match page for page.
+- **PDF to page images, for every upload:** pypdfium2 (Apache-2.0 / BSD-3-Clause) reads each page's size and renders every page of the PDF (the converted one for a DOCX, the upload itself for a PDF) at 144 DPI, encoded as WebP with Pillow. The images and the PDF therefore always match page for page.
 - **Documents are untrusted input:** size and page limits, macro rejection, zip-bomb checks, LibreOffice's DOCX import filter only (never format detection, so other formats are refused), no network for LibreOffice, a per-job scratch directory wiped afterwards, and no document contents in logs. Scanned PDFs render as images like any other PDF.
 
 ## 7. Open Decisions

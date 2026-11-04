@@ -11,7 +11,7 @@
 |---|---|---|
 | LibreOffice | MPL-2.0 | DOCX to PDF, run unmodified as a separate process |
 | unoserver | MIT | keeps LibreOffice running between conversions |
-| pypdfium2 | Apache-2.0 / BSD-3-Clause | PDF page rendering; opens converted PDFs in the engine tests |
+| pypdfium2 | Apache-2.0 / BSD-3-Clause; its PDFium build is BSD-3-Clause and bundles permissive libraries (FreeType, ICU, libjpeg-turbo, OpenJPEG, libpng, zlib and others), whose licence files ship in the wheel | PDF page sizes in `engine/pages/`, and PDF page rendering |
 | Pillow | MIT-CMU | WebP encoding |
 | Pydantic (with pydantic-core, annotated-types, typing-inspection) | MIT | the API contract models in `definition/` |
 | typing-extensions | PSF-2.0 | installed with Pydantic |
