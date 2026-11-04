@@ -11,11 +11,13 @@ SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
 US_LETTER = (612.0, 792.0)
 BUDGET_PAGE = (630.0, 810.0)  # the US Budget's trim size, 8.75 x 11.25 inches
 BUDGET_TURNED_PAGE = (810.0, 630.0)  # the same page with /Rotate 90, as it is shown
+WORD_A4 = (595.32, 841.92)  # A4 as Word 2016 saved it
 
 # Each page's crop box turned by its /Rotate, as pypdf reads them, so PDFium isn't checked against itself.
 EXPECTED_PAGE_SIZES = {
     "irs-form-1040-2025.pdf": [US_LETTER] * 2,
     "un-resolution-78-1-en.pdf": [US_LETTER] * 12,
+    "uk-employability-support-guidance-chapter-12.pdf": [WORD_A4] * 10,
     "us-budget-fy2025.pdf": [BUDGET_PAGE] * 140 + [BUDGET_TURNED_PAGE] * 40 + [BUDGET_PAGE] * 8,
     "nasa-space-activities-summary-1960.pdf": [  # scanned: each page is the size of its scan
         (607.0, 789.0), (604.0, 787.0), (604.0, 788.0), (594.0, 787.0), (602.0, 787.0), (602.0, 788.0),

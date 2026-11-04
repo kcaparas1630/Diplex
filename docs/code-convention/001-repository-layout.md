@@ -1,6 +1,6 @@
 # Convention 001: Repository Layout
 
-The planned layout. So far `core/diplex/` has its three top-level folders (`definition/`, `engine/`, `api/`), `engine/docx_to_pdf/` and `engine/pages/`; each deeper folder is added when it has code.
+The planned layout. So far `core/diplex/` has its three top-level folders (`definition/`, `engine/`, `api/`), `engine/docx_to_pdf/`, `engine/pdf_loading/` and `engine/pages/`; each deeper folder is added when it has code.
 
 ```
 Dockerfile                     builds the engine image, tagged diplex-core (Python, LibreOffice, unoserver, fonts)
@@ -10,6 +10,7 @@ core/                          Python engine (uv project diplex-core): the whole
     definition/                Pydantic models: the API contract (source of the OpenAPI spec)
     engine/
       docx_to_pdf/             unoserver pool and supervision
+      pdf_loading/             loads a PDF's bytes into PDFium, for pages/ and checks/
       pages/                   PDF -> WebP page images and page sizes
       checks/                  input checks: size, pages, macros, zip bombs
     api/                       FastAPI route: render
