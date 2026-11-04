@@ -5,6 +5,7 @@ from importlib.metadata import version
 from fastapi import FastAPI
 
 from .health_route import health_router
+from .render_route import render_router
 from .upload_limit_setting import read_max_upload_bytes
 from .upload_size_limit import UploadSizeLimit
 
@@ -17,6 +18,7 @@ def create_app() -> FastAPI:
         version=version("diplex-core"),
     )
     engine_app.include_router(health_router)
+    engine_app.include_router(render_router)
     engine_app.add_middleware(UploadSizeLimit, max_upload_bytes=read_max_upload_bytes())
     return engine_app
 

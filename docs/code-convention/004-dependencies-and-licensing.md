@@ -18,6 +18,7 @@
 | typing-extensions | PSF-2.0 | installed with Pydantic |
 | FastAPI (with annotated-doc) | MIT | the HTTP API in `api/` |
 | Starlette | BSD-3-Clause | the web framework under FastAPI |
+| python-multipart | Apache-2.0 | FastAPI's parser for the `multipart/form-data` upload to `/render` |
 | anyio, h11 | MIT | installed with FastAPI and uvicorn |
 | idna, click | BSD-3-Clause | installed with FastAPI and uvicorn |
 | colorama | BSD-3-Clause | installed with click on Windows only |

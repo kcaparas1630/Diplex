@@ -9,6 +9,7 @@ dependencies = [
     "pillow>=13.0.0",  # MIT-CMU: holds the rendered page images and encodes them as WebP in engine/pages/
     "pydantic>=2.14.2",  # MIT: the API contract models in definition/
     "pypdfium2>=5.14",  # Apache-2.0 / BSD-3-Clause: reads PDF page sizes and renders pages in engine/pages/
+    "python-multipart>=0.0.33",  # Apache-2.0: FastAPI's parser for the multipart/form-data upload to /render
     "uvicorn>=0.54.0",  # BSD-3-Clause: serves the API
 ]
 
