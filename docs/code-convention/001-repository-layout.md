@@ -22,6 +22,7 @@ playground/                    sample consumer app: calls the engine over HTTP a
 docs/                          see docs/README.md
 scripts/
   conventions/                 the convention checker (convention 010)
+  smoke_render/                renders every sample through a running engine and reports what happened
   start-unoserver.sh           builds the engine image and runs unoserver for the engine tests
   engine-entrypoint.sh         the image's command: starts unoserver on localhost and the engine API
 .claude/settings.json          Claude Code project settings: the Stop hook that runs the checker
