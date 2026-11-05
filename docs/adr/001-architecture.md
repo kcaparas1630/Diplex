@@ -36,6 +36,7 @@ consumer app (server)
 
 - **Self-hosted only.** The consumer runs the engine image on its own network. Authentication is off by default (the engine must not be reachable from the internet) or a single static key set by environment variable.
 - **The consumer can add its own licensed fonts** by mounting them into the image ([ADR 005](005-fonts.md)).
+- **Settings are environment variables:** `DIPLEX_MAX_UPLOAD_BYTES` is the largest request body the engine accepts, 50 MiB (52,428,800 bytes) by default until §7's measurements set it.
 - **Versioned releases.** Images are tagged by version and each request carries an API version.
 - **Licence:** MIT for all Diplex code. Every dependency must allow that ([ADR 007](007-mit-licence.md), [convention 004](../code-convention/004-dependencies-and-licensing.md)).
 
@@ -45,8 +46,8 @@ consumer app (server)
 
 - **`POST /render` takes `multipart/form-data`** with the DOCX or PDF in one file part, not base64.
 - **Every upload gets its page images back,** as `multipart/form-data`: a JSON part listing each page's `{ index, width, height }` in points, in page order (its length is the page count), so a viewer can lay out pages before the images load. Sizes are as the page is shown (its crop box, with `/Rotate` applied, so they match the image) and rounded to 0.01 pt; and one WebP image per page, in page order.
-- **A DOCX takes one extra step:** the engine converts it to PDF first and renders the images from that PDF. The response also carries that PDF, so the app can offer it for download.
-- **A PDF upload gets no PDF back.** The engine does not change it and the consumer already has it.
+- **A DOCX takes one extra step:** the engine converts it to PDF first and renders the images from that PDF. The response also carries that PDF, so the app can offer it for download. A PDF upload gets no PDF back: the engine does not change it and the consumer already has it.
+- **Errors are JSON `{ code, message }`** (`RenderError` in `definition/`): consumers branch on the code, and the message never repeats document contents. A body over the upload limit gets 413 `upload_too_large` before the engine reads the rest of it.
 - **Page images are WebP at 144 DPI,** lossless for text pages and lossy (about quality 80) for scanned or photo-heavy pages. On the samples, lossless was smaller on 90% of pages (median 70 KB), so a 100-page document is about 7 MB of images.
 
 ## 5. Storing the Results (the Consumer's Code)
@@ -79,7 +80,7 @@ consumer app (server)
 
 ## 7. Open Decisions
 
-- **Upload limits:** maximum pages and file size for a synchronous render, measured on the engine image without a GPU, and whether the 40 MP page image limit fits that memory. The page limit also bounds the response size, since consumers hold it in memory.
+- **Upload limits:** maximum pages and file size (now a provisional 50 MiB; the largest sample is 3 MB) for a synchronous render, measured on the engine image without a GPU, and whether the 40 MP page image limit fits that memory. The page limit also bounds the response size, since consumers hold it in memory.
 - **unoserver pool:** pool size, `--stop-after` count, and conversion timeout. Sharing a LibreOffice process between jobs is a deliberate trade against one process per job, which the POC used.
 - **Word fidelity:** compare the DOCX samples rendered by Diplex against Word before making any fidelity claim.
 - **Page image resolution:** one size, or a thumbnail plus a full size.
