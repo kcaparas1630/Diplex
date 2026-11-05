@@ -42,7 +42,8 @@ docker build -t diplex-core .                  # builds the engine image from th
 bash scripts/start-unoserver.sh                # builds the engine image and runs unoserver for the engine tests; Ctrl+C stops it
 cd core && uv sync                             # engine package and its test tools
 cd core && uv run pytest                       # engine tests; the unoserver tests skip unless it is running
-cd core && uv run uvicorn diplex.api:app       # serves the engine API on 127.0.0.1:8000 (GET /health)
+cd core && uv run uvicorn diplex.api:app       # serves the engine API on 127.0.0.1:8000 (GET /health, POST /render)
+cd core && uv run python -m diplex.openapi_export ../docs/openapi.json   # rewrites the published OpenAPI spec after a contract change
 ```
 
 The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). Add the playground commands here once it exists.

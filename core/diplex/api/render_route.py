@@ -18,6 +18,7 @@ from diplex.definition import (
     RenderErrorCode,
     RenderManifest,
     RenderPart,
+    RenderResponseParts,
 )
 from diplex.engine import (
     DocumentType,
@@ -45,11 +46,33 @@ ERROR_RESPONSES = {
     DocxConversionError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_CONVERSION_FAILED),
     UnoserverUnavailableError: (HTTP_503_SERVICE_UNAVAILABLE, RenderErrorCode.CONVERTER_UNAVAILABLE),
 }
+# What the OpenAPI spec says /render answers; every error is a RenderError in JSON.
+RESPONSES_IN_SPEC = {
+    200: {"model": RenderResponseParts, "description": "The page sizes and page images, as multipart/form-data."},
+    400: {"model": RenderError, "description": "invalid_request: a body that isn't readable multipart/form-data."},
+    413: {"model": RenderError, "description": "upload_too_large: over DIPLEX_MAX_UPLOAD_BYTES."},
+    415: {"model": RenderError, "description": "unsupported_document_type: not a PDF or a DOCX."},
+    422: {
+        "model": RenderError,
+        "description": "invalid_request, unreadable_pdf, page_too_large or docx_conversion_failed.",
+    },
+    500: {"model": RenderError, "description": "internal_error: the message names the job in the engine's log."},
+    503: {"model": RenderError, "description": "converter_unavailable: unoserver is not answering; try again later."},
+}
+# The part's own content type is ignored (the type comes from the bytes), but these are what to send.
+DOCUMENT_PART_TYPES = "application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 # unoserver's own message names Python classes and LibreOffice internals; the consumer gets a plain one instead.
 FIXED_MESSAGES = {DocxConversionError: "LibreOffice could not load or convert the DOCX"}
 
 
-@render_router.post("/render", summary="Render each page of a DOCX or PDF as a WebP image")
+@render_router.post(
+    "/render",
+    summary="Render each page of a DOCX or PDF as a WebP image",
+    responses=RESPONSES_IN_SPEC,
+    openapi_extra={
+        "requestBody": {"content": {"multipart/form-data": {"encoding": {"document": {"contentType": DOCUMENT_PART_TYPES}}}}}
+    },
+)
 def render_upload(document: Annotated[UploadFile, File(description="The DOCX or PDF to render.")]) -> Response:
     """Render the uploaded DOCX or PDF, answering with its page sizes, page images and any converted PDF, or an error."""
     document_bytes = document.file.read()  # the upload size limit has already capped it
