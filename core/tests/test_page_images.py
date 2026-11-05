@@ -7,13 +7,15 @@ import pytest
 from PIL import Image
 
 from diplex.engine.pages import PageTooLargeError, UnreadablePdfError, render_page_images
-from diplex.engine.pages.page_images import MAX_PAGE_PIXELS
+from diplex.engine.pages.page_images import MAX_PAGE_PIXELS, MAX_PAGE_SIDE_PIXELS
 
 STAND_IN_PDF = b"%PDF-1.7\n stand-in bytes"
 US_LETTER = (612.0, 792.0)
 A4_FROM_PDFIUM = (595.303955078125, 841.8897705078125)  # LibreOffice's A4 page, as PDFium reports it
 A0_DRAWING = (2383.94, 3370.39)  # 4768 x 6741 px at 144 DPI: 32 MP, under the limit
 TOO_LARGE_PAGE = (14400.0, 14400.0)  # the PDF spec's 200-inch maximum: 28800 x 28800 px at 144 DPI
+LONGEST_PAGE = (612.0, 8191.5)  # 8.5 x 113.77 inches: 1224 x 16383 px, WebP's longest side
+TOO_LONG_PAGE = (612.0, 8200.0)  # a long receipt: 1224 x 16400 px is only 20 MP, but too tall for WebP
 
 
 class FakeBitmap:
@@ -174,6 +176,23 @@ def test_a_page_too_large_is_refused_before_any_page_renders(fake_pdfium):
         next(render_page_images(STAND_IN_PDF))
     assert not any(event.startswith("open page") for event in fake_pdfium.events)
     assert fake_pdfium.events[-1] == "close document"
+
+
+def test_a_page_as_long_as_webp_allows_renders(fake_pdfium):
+    """A page 16383 px long, WebP's limit, renders."""
+    fake_pdfium.page_sizes = [LONGEST_PAGE]
+
+    assert [page_image.size for page_image in render_page_images(STAND_IN_PDF)] == [(1224, MAX_PAGE_SIDE_PIXELS)]
+
+
+def test_a_page_longer_than_webp_allows_is_refused_before_any_page_renders(fake_pdfium):
+    """A page under the pixel limit but over 16383 px on a side raises PageTooLargeError before the first page is opened."""
+    fake_pdfium.page_sizes = [US_LETTER, TOO_LONG_PAGE]
+
+    with pytest.raises(PageTooLargeError, match="page 2 would render at 1224 x 16400 pixels, over WebP's limit"):
+        next(render_page_images(STAND_IN_PDF))
+    assert 1224 * 16400 < MAX_PAGE_PIXELS
+    assert not any(event.startswith("open page") for event in fake_pdfium.events)
 
 
 def test_a_page_pdfium_cannot_render_raises_unreadable(fake_pdfium):
