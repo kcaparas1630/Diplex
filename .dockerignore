@@ -1,0 +1,7 @@
+# Only core/ (its pyproject, lock and package) and scripts/ go into the image; keep local and private files out.
+.git/
+samples/
+out/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
