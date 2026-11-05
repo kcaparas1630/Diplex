@@ -13,6 +13,8 @@ PACKAGE_FOLDERS = [
     "diplex.engine.pages",
     "diplex.engine.pdf_loading",
     "diplex.api",
+    "diplex.api.form_data",
+    "diplex.api.job_log",
 ]
 
 
