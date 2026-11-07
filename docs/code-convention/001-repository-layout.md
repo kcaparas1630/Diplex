@@ -27,6 +27,7 @@ docs/                          see docs/README.md
 scripts/
   conventions/                 the convention checker (convention 010)
   smoke_render/                renders every sample through a running engine and reports what happened
+  load_test/                   sends every DOCX sample to a running engine, several at once, and reports throughput and latency
   start-unoserver.sh           builds the engine image and runs one unoserver on port 2003 for the engine tests
   engine-entrypoint.sh         the image's command: runs the engine API, which starts its unoserver pool
 .claude/settings.json          Claude Code project settings: the Stop hook that runs the checker
