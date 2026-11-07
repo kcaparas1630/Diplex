@@ -6,6 +6,7 @@ from .docx_to_pdf import (
     UnoserverPool,
     UnoserverPoolSettings,
     UnoserverUnavailableError,
+    count_available_cpus,
     unoserver_pool_logger,
 )
 from .document_render import RenderedDocument, render_docx, render_pdf
@@ -21,6 +22,7 @@ __all__ = [
     "UnoserverPoolSettings",
     "UnoserverUnavailableError",
     "UnsupportedDocumentError",
+    "count_available_cpus",
     "detect_document_type",
     "render_docx",
     "render_pdf",
