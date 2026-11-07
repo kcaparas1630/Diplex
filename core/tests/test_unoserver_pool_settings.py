@@ -5,6 +5,7 @@ import pytest
 from diplex.api import create_app
 from diplex.api.unoserver_pool_settings import (
     INSTANCE_COUNT_VARIABLE,
+    RECYCLE_COUNT_VARIABLE,
     TIMEOUT_SECONDS_VARIABLE,
     WAIT_SECONDS_VARIABLE,
     read_unoserver_pool_settings,
@@ -87,4 +88,27 @@ def test_a_timeout_it_cannot_use_is_refused(monkeypatch, configured_value):
     monkeypatch.setenv(TIMEOUT_SECONDS_VARIABLE, configured_value)
 
     with pytest.raises(ValueError, match=TIMEOUT_SECONDS_VARIABLE):
+        read_unoserver_pool_settings()
+
+
+def test_an_instance_is_recycled_after_50_conversions_by_default(monkeypatch):
+    """Without DIPLEX_CONVERSIONS_BEFORE_RECYCLE, an instance is recycled after 50 conversions (the benchmark's ~1 GB)."""
+    monkeypatch.delenv(RECYCLE_COUNT_VARIABLE, raising=False)
+
+    assert read_unoserver_pool_settings().conversions_before_recycle == 50
+
+
+def test_the_recycle_count_comes_from_the_environment(monkeypatch):
+    """DIPLEX_CONVERSIONS_BEFORE_RECYCLE sets the count."""
+    monkeypatch.setenv(RECYCLE_COUNT_VARIABLE, "200")
+
+    assert read_unoserver_pool_settings().conversions_before_recycle == 200
+
+
+@pytest.mark.parametrize("configured_value", ["0", "-1", "fifty"])
+def test_a_recycle_count_it_cannot_use_is_refused(monkeypatch, configured_value):
+    """A count below 1, or not a whole number, raises ValueError naming the variable."""
+    monkeypatch.setenv(RECYCLE_COUNT_VARIABLE, configured_value)
+
+    with pytest.raises(ValueError, match=RECYCLE_COUNT_VARIABLE):
         read_unoserver_pool_settings()
