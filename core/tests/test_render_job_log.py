@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from diplex.api import create_app, render_route
 from diplex.api.job_log import log_unexpected_error, logged_render_job, render_job_logger, send_job_logs_to_stderr
 from diplex.definition import RenderError, RenderErrorCode
+from stand_in_unoserver_pool import StandInUnoserverPool
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
 SECRET_FILE_NAME = "board-minutes-acquisition-of-contoso.pdf"
@@ -45,7 +46,7 @@ def _document_words(pdf_bytes: bytes) -> set[str]:
 
 def _post_render(document_bytes: bytes, file_name: str = SECRET_FILE_NAME):
     """Send the bytes to /render as the document part of an upload."""
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
         return client.post("/render", files={"document": (file_name, document_bytes, "application/pdf")})
 
 
@@ -164,7 +165,7 @@ def test_a_malformed_upload_leaves_none_of_its_bytes_in_the_logs(caplog):
     """python-multipart's warning quotes the byte it stopped at; it is kept out, and the client still gets 400."""
     caplog.set_level(logging.DEBUG)
 
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
         response = client.post(
             "/render", content=b"Zebra payroll", headers={"content-type": "multipart/form-data; boundary=missing"}
         )

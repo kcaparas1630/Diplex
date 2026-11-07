@@ -1,10 +1,10 @@
 """Renders a PDF, or a DOCX converted to PDF, into its page sizes and lossless WebP page images."""
 
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from diplex.definition import PageSize
-from diplex.engine.docx_to_pdf import convert_docx_to_pdf
 from diplex.engine.pages import PageWebp, encode_page_webps, read_page_sizes, render_page_images
 
 # PDFium must never take calls from two threads at once, even for different documents (pypdfium2's docs), and FastAPI
@@ -29,8 +29,8 @@ def render_pdf(pdf_bytes: bytes) -> RenderedDocument:
     return RenderedDocument(page_sizes=page_sizes, page_webps=page_webps)
 
 
-def render_docx(docx_bytes: bytes) -> RenderedDocument:
-    """Convert a DOCX to PDF with unoserver, then render that PDF, so the images and the PDF match page for page."""
+def render_docx(docx_bytes: bytes, convert_docx_to_pdf: Callable[[bytes], bytes]) -> RenderedDocument:
+    """Convert a DOCX to PDF with the given converter, then render that PDF, so the images and the PDF match page for page."""
     converted_pdf = convert_docx_to_pdf(docx_bytes)  # outside the PDFium lock: LibreOffice is a separate process
     rendered_pdf = render_pdf(converted_pdf)
     return RenderedDocument(
