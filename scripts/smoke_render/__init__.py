@@ -8,10 +8,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from .render_request import SampleResult, render_sample
+from .render_request import SampleResult, post_document, render_sample
 from .results_table import format_results_table
 
-__all__ = ["SampleResult", "format_results_table", "render_sample", "render_samples"]
+__all__ = ["SampleResult", "format_results_table", "post_document", "render_sample", "render_samples"]
 
 SAMPLE_SUFFIXES = (".docx", ".pdf")
 

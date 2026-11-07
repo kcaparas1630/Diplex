@@ -39,6 +39,8 @@ python -m scripts.conventions                  # convention check (also the Stop
 python -m pytest scripts/conventions/tests     # checker tests
 python -m scripts.smoke_render http://127.0.0.1:8000   # renders every sample through a running engine; prints a Markdown table
 python -m pytest scripts/smoke_render/tests    # smoke test script tests
+python -m scripts.load_test http://127.0.0.1:8000 --concurrency 8 --rounds 3 --container <name>   # load-tests the pool on every DOCX sample; prints a Markdown report
+python -m pytest scripts/load_test/tests       # load test script tests
 
 docker build -t diplex-core .                  # builds the engine image from the root Dockerfile
 bash scripts/start-unoserver.sh                # builds the engine image and runs one unoserver on 127.0.0.1:2003 for the engine tests; Ctrl+C stops it
