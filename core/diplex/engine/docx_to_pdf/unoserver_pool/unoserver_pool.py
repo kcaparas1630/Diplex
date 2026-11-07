@@ -15,6 +15,7 @@ unoserver_pool_logger = logging.getLogger("diplex.unoserver_pool")
 FIRST_UNOSERVER_PORT = 2002  # instance 0 gets unoserver's default ports: 2002 for UNO, 2003 for XML-RPC
 DEFAULT_WAIT_SECONDS = 30.0
 DEFAULT_CONVERSION_TIMEOUT_SECONDS = 120.0  # the benchmark's slowest successful conversion took 75 s
+DEFAULT_CONVERSIONS_BEFORE_RECYCLE = 50  # benchmark: 233 MB idle, about 1.0 GB after 50 conversions, never reclaimed
 DEFAULT_READY_TIMEOUT_SECONDS = 60.0  # unoserver sleeps 7 s, then tries LibreOffice for up to about 40 s
 # States from which an instance may still become idle, so a conversion is worth waiting for.
 STATES_WORTH_WAITING_FOR = frozenset({InstanceState.STARTING, InstanceState.BUSY, InstanceState.RECYCLING})
@@ -26,11 +27,12 @@ class ConverterBusyError(Exception):
 
 @dataclass(frozen=True)
 class UnoserverPoolSettings:
-    """How the pool runs: how many instances, how long a conversion waits for one and may take, and how each one starts."""
+    """How the pool runs: its size, how long a conversion waits and may take, when to recycle, and how instances start."""
 
     instance_count: int
     wait_seconds: float = DEFAULT_WAIT_SECONDS
     conversion_timeout_seconds: float = DEFAULT_CONVERSION_TIMEOUT_SECONDS
+    conversions_before_recycle: int = DEFAULT_CONVERSIONS_BEFORE_RECYCLE
     first_port: int = FIRST_UNOSERVER_PORT
     unoserver_command: tuple[str, ...] = ("unoserver",)
     ready_timeout_seconds: float = DEFAULT_READY_TIMEOUT_SECONDS
@@ -66,6 +68,7 @@ class UnoserverPool:
                 scratch_folder=self._scratch_root / f"instance-{instance_index}",
                 unoserver_command=self.settings.unoserver_command,
                 ready_timeout_seconds=self.settings.ready_timeout_seconds,
+                conversions_before_recycle=self.settings.conversions_before_recycle,
                 pool_condition=self._condition,
             )
             for instance_index in range(self.settings.instance_count)

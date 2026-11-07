@@ -174,3 +174,51 @@ def test_a_conversion_over_the_timeout_gets_a_clear_error_and_its_instance_is_ki
 
     assert 0.5 <= timed_out_after < 2
     assert "recycling unoserver instance 0: its conversion failed with DocxConversionTimeoutError" in caplog.text
+
+
+def test_an_instance_is_recycled_after_its_conversion_count(start_log, caplog):
+    """With conversions_before_recycle=3, three DOCX files run on one unoserver and the fourth on a fresh one."""
+    caplog.set_level(logging.INFO, logger="diplex.unoserver_pool")
+    unoserver_pool = UnoserverPool(
+        UnoserverPoolSettings(
+            instance_count=1,
+            conversions_before_recycle=3,
+            first_port=find_free_port_range(2),
+            unoserver_command=STAND_IN_UNOSERVER,
+        )
+    )
+    unoserver_pool.start()
+    try:
+        _wait_until_idle(unoserver_pool)
+        pdf_documents = [unoserver_pool.convert_docx_to_pdf(b"PK document %d" % number) for number in range(4)]
+        first_group_id = int(_start_lines(start_log)[0]["pgid"])
+        start_count = len(_start_lines(start_log))
+        old_group_names = process_names_in_group(first_group_id)
+    finally:
+        unoserver_pool.stop()
+
+    assert pdf_documents[0] == pdf_documents[1] == pdf_documents[2] != pdf_documents[3]
+    assert start_count == 2
+    assert old_group_names == []
+    assert "recycling unoserver instance 0: it converted 3 documents" in caplog.text
+
+
+def test_a_recycled_instance_counts_from_zero_again(start_log):
+    """The count restarts with each fresh unoserver: with a count of 2, five conversions use three unoservers."""
+    unoserver_pool = UnoserverPool(
+        UnoserverPoolSettings(
+            instance_count=1,
+            conversions_before_recycle=2,
+            first_port=find_free_port_range(2),
+            unoserver_command=STAND_IN_UNOSERVER,
+        )
+    )
+    unoserver_pool.start()
+    try:
+        _wait_until_idle(unoserver_pool)
+        pdf_documents = [unoserver_pool.convert_docx_to_pdf(b"PK document %d" % number) for number in range(5)]
+    finally:
+        unoserver_pool.stop()
+
+    assert [len(set(pdf_documents[start : start + 2])) for start in (0, 2)] == [1, 1]
+    assert len(set(pdf_documents)) == 3
