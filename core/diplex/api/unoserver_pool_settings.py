@@ -9,6 +9,8 @@ WAIT_SECONDS_VARIABLE = "DIPLEX_CONVERTER_WAIT_SECONDS"  # how long a DOCX waits
 DEFAULT_WAIT_SECONDS = 30
 TIMEOUT_SECONDS_VARIABLE = "DIPLEX_CONVERSION_TIMEOUT_SECONDS"  # then the instance is killed and the DOCX gets 422
 DEFAULT_TIMEOUT_SECONDS = 120
+RECYCLE_COUNT_VARIABLE = "DIPLEX_CONVERSIONS_BEFORE_RECYCLE"  # LibreOffice's memory only grows (ADR 004)
+DEFAULT_RECYCLE_COUNT = 50
 
 
 def read_unoserver_pool_settings() -> UnoserverPoolSettings:
@@ -17,6 +19,7 @@ def read_unoserver_pool_settings() -> UnoserverPoolSettings:
         instance_count=_read_whole_number(INSTANCE_COUNT_VARIABLE, count_available_cpus(), minimum=1),
         wait_seconds=_read_whole_number(WAIT_SECONDS_VARIABLE, DEFAULT_WAIT_SECONDS, minimum=0),
         conversion_timeout_seconds=_read_whole_number(TIMEOUT_SECONDS_VARIABLE, DEFAULT_TIMEOUT_SECONDS, minimum=1),
+        conversions_before_recycle=_read_whole_number(RECYCLE_COUNT_VARIABLE, DEFAULT_RECYCLE_COUNT, minimum=1),
     )
 
 
