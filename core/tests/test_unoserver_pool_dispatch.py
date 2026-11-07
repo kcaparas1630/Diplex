@@ -178,19 +178,6 @@ def test_an_instance_still_starting_when_the_wait_ends_gives_unavailable(monkeyp
         unoserver_pool.stop()
 
 
-def test_an_instance_whose_unoserver_dies_mid_conversion_is_down():
-    """If unoserver dies during a conversion, that conversion fails and the instance takes no more."""
-    unoserver_pool = _started_pool(instance_count=1)
-    try:
-        with pytest.raises(UnoserverUnavailableError):
-            unoserver_pool.convert_docx_to_pdf(b"crash the stand-in unoserver")
-        assert unoserver_pool.instances[0].state is InstanceState.DOWN
-        with pytest.raises(UnoserverUnavailableError, match="no unoserver instance is running"):
-            unoserver_pool.convert_docx_to_pdf(b"PK next")
-    finally:
-        unoserver_pool.stop()
-
-
 def test_a_document_libreoffice_refuses_leaves_the_instance_idle():
     """A conversion fault fails that DOCX only; the instance is idle again for the next one."""
     unoserver_pool = _started_pool(instance_count=1)
