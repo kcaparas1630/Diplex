@@ -12,7 +12,7 @@ from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 
-UNOSERVER_START_SECONDS = 60  # a DOCX gets 503 until LibreOffice has started; keep asking for this long
+UNOSERVER_START_SECONDS = 60  # a DOCX waits for LibreOffice to start but can still get 503; keep asking for this long
 REQUEST_TIMEOUT_SECONDS = 600
 
 

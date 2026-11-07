@@ -2,7 +2,9 @@
 
 from .checks import DocumentType, UnsupportedDocumentError, detect_document_type
 from .docx_to_pdf import (
+    ConverterBusyError,
     DocxConversionError,
+    InstanceState,
     UnoserverPool,
     UnoserverPoolSettings,
     UnoserverUnavailableError,
@@ -13,8 +15,10 @@ from .document_render import RenderedDocument, render_docx, render_pdf
 from .pages import PageTooLargeError, UnreadablePdfError
 
 __all__ = [
+    "ConverterBusyError",
     "DocumentType",
     "DocxConversionError",
+    "InstanceState",
     "PageTooLargeError",
     "RenderedDocument",
     "UnreadablePdfError",

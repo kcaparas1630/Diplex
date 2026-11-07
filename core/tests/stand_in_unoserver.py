@@ -4,7 +4,8 @@ Run as `python stand_in_unoserver.py --port P --uno-port Q ...`. Like unoserver,
 in its own process group, which holds the UNO port and ignores SIGTERM, as soffice.bin outlived unoserver in the
 benchmark. The DOCX bytes pick what a conversion does: b"slow..." takes a minute, b"crash..." kills this unoserver
 (leaving its LibreOffice running), b"fault..." raises, and anything else returns a PDF naming this process. Each start
-appends a line to the file in STAND_IN_UNOSERVER_LOG, if set; STAND_IN_UNOSERVER_START_SECONDS delays readiness.
+appends a line to the file in STAND_IN_UNOSERVER_LOG, if set; STAND_IN_UNOSERVER_START_SECONDS delays readiness, and
+STAND_IN_UNOSERVER_CONVERT_SECONDS makes every conversion take that long.
 """
 
 import argparse
@@ -77,6 +78,7 @@ def _report_info() -> dict:
 
 def _convert(inpath, indata, outpath, convert_to, filtername, filter_options, update_index, infiltername):
     """Act on the DOCX bytes: be slow, crash, fail, or return a PDF that names this process."""
+    time.sleep(float(os.environ.get("STAND_IN_UNOSERVER_CONVERT_SECONDS", "0")))
     if indata.startswith(b"slow"):
         time.sleep(SLOW_CONVERSION_SECONDS)
     if indata.startswith(b"crash"):
