@@ -3,6 +3,7 @@
 from .unoserver_client import (
     DEFAULT_UNOSERVER_PORT,
     DocxConversionError,
+    DocxConversionTimeoutError,
     UnoserverUnavailableError,
     convert_docx_to_pdf,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "FIRST_UNOSERVER_PORT",
     "ConverterBusyError",
     "DocxConversionError",
+    "DocxConversionTimeoutError",
     "InstanceState",
     "UnoserverPool",
     "UnoserverPoolSettings",

@@ -3,7 +3,12 @@
 import pytest
 
 from diplex.api import create_app
-from diplex.api.unoserver_pool_settings import INSTANCE_COUNT_VARIABLE, WAIT_SECONDS_VARIABLE, read_unoserver_pool_settings
+from diplex.api.unoserver_pool_settings import (
+    INSTANCE_COUNT_VARIABLE,
+    TIMEOUT_SECONDS_VARIABLE,
+    WAIT_SECONDS_VARIABLE,
+    read_unoserver_pool_settings,
+)
 from diplex.engine import count_available_cpus
 
 
@@ -59,4 +64,27 @@ def test_a_wait_it_cannot_use_is_refused(monkeypatch, configured_value):
     monkeypatch.setenv(WAIT_SECONDS_VARIABLE, configured_value)
 
     with pytest.raises(ValueError, match=WAIT_SECONDS_VARIABLE):
+        read_unoserver_pool_settings()
+
+
+def test_a_conversion_may_take_120_seconds_by_default(monkeypatch):
+    """Without DIPLEX_CONVERSION_TIMEOUT_SECONDS, a conversion times out after 120 s, above the benchmark's slowest (75 s)."""
+    monkeypatch.delenv(TIMEOUT_SECONDS_VARIABLE, raising=False)
+
+    assert read_unoserver_pool_settings().conversion_timeout_seconds == 120
+
+
+def test_the_timeout_comes_from_the_environment(monkeypatch):
+    """DIPLEX_CONVERSION_TIMEOUT_SECONDS sets the timeout in whole seconds."""
+    monkeypatch.setenv(TIMEOUT_SECONDS_VARIABLE, "240")
+
+    assert read_unoserver_pool_settings().conversion_timeout_seconds == 240
+
+
+@pytest.mark.parametrize("configured_value", ["0", "-5", "2 minutes"])
+def test_a_timeout_it_cannot_use_is_refused(monkeypatch, configured_value):
+    """A zero, negative or non-whole timeout raises ValueError naming the variable."""
+    monkeypatch.setenv(TIMEOUT_SECONDS_VARIABLE, configured_value)
+
+    with pytest.raises(ValueError, match=TIMEOUT_SECONDS_VARIABLE):
         read_unoserver_pool_settings()
