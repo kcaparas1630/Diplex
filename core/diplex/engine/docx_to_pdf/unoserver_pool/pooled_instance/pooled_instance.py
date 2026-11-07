@@ -84,14 +84,17 @@ class PooledInstance:
         self._state = InstanceState.BUSY
         return True
 
-    def release(self) -> None:
-        """Make a busy instance idle again after its conversion, or recycle it if unoserver died; call it holding the condition."""
+    def release(self, conversion_failure: BaseException | None) -> None:
+        """Make a busy instance idle after a conversion that worked, or recycle it after any failure; hold the condition."""
         if self._state is not InstanceState.BUSY:
             return
         if self._unoserver_process is None or self._unoserver_process.has_exited():
             self._recycle("its unoserver exited during a conversion")
-            return
-        self._set_state(InstanceState.IDLE)
+        elif conversion_failure is not None:
+            # A failed or timed-out LibreOffice may keep failing, or carry what the document did, into the next job.
+            self._recycle(f"its conversion failed with {type(conversion_failure).__name__}")
+        else:
+            self._set_state(InstanceState.IDLE)
 
     def _recycle(self, reason: str) -> None:
         """Hand the instance to its keeper to kill and start afresh, before it takes another job; call it holding the condition."""
