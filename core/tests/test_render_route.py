@@ -13,7 +13,13 @@ from PIL import Image
 from diplex.api import create_app, render_route
 from diplex.api.upload_limit_setting import MAX_UPLOAD_BYTES_VARIABLE
 from diplex.definition import RenderError, RenderErrorCode, RenderManifest
-from diplex.engine import ConverterBusyError, DocxConversionError, PageTooLargeError, UnoserverUnavailableError
+from diplex.engine import (
+    ConverterBusyError,
+    DocxConversionError,
+    DocxConversionTimeoutError,
+    PageTooLargeError,
+    UnoserverUnavailableError,
+)
 from diplex.engine.pages import read_page_sizes
 from stand_in_unoserver_pool import StandInUnoserverPool
 
@@ -177,6 +183,22 @@ def test_a_docx_gets_503_converter_busy_when_every_instance_stays_busy():
     assert response.status_code == 503
     assert _error(response) == RenderError(
         code=RenderErrorCode.CONVERTER_BUSY, message="all 4 unoserver instances stayed busy for 30 seconds"
+    )
+
+
+def test_a_docx_that_times_out_gets_422_saying_so():
+    """A conversion over DIPLEX_CONVERSION_TIMEOUT_SECONDS gets 422 docx_conversion_failed with the timeout in the message."""
+
+    def stuck_conversion(docx_bytes):
+        """Fail as the pool does when LibreOffice runs past the timeout."""
+        raise DocxConversionTimeoutError("LibreOffice did not finish converting the DOCX within 120 seconds")
+
+    response = _post_render(_word_package(), file_name="report.docx", docx_conversion=stuck_conversion)
+
+    assert response.status_code == 422
+    assert _error(response) == RenderError(
+        code=RenderErrorCode.DOCX_CONVERSION_FAILED,
+        message="LibreOffice did not finish converting the DOCX within 120 seconds",
     )
 
 

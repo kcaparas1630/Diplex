@@ -7,7 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from diplex.engine import DocxConversionError, InstanceState, UnoserverPool, UnoserverPoolSettings, UnoserverUnavailableError
+from diplex.engine import (
+    DocxConversionError,
+    DocxConversionTimeoutError,
+    InstanceState,
+    UnoserverPool,
+    UnoserverPoolSettings,
+    UnoserverUnavailableError,
+)
 from localhost_ports import find_free_port_range
 from process_groups import process_names_in_group
 
@@ -137,3 +144,33 @@ def test_a_failed_conversion_recycles_only_its_own_instance(start_log):
         assert unoserver_pool.instances[0].state in {InstanceState.RECYCLING, InstanceState.STARTING}
     finally:
         unoserver_pool.stop()
+
+
+def test_a_conversion_over_the_timeout_gets_a_clear_error_and_its_instance_is_killed(start_log, caplog):
+    """A conversion still running at conversion_timeout_seconds fails at once, and its unoserver and LibreOffice are killed."""
+    caplog.set_level(logging.INFO, logger="diplex.unoserver_pool")
+    unoserver_pool = UnoserverPool(
+        UnoserverPoolSettings(
+            instance_count=1,
+            conversion_timeout_seconds=0.5,
+            first_port=find_free_port_range(2),
+            unoserver_command=STAND_IN_UNOSERVER,
+        )
+    )
+    unoserver_pool.start()
+    try:
+        _wait_until_idle(unoserver_pool)
+        stuck_group_id = int(_start_lines(start_log)[0]["pgid"])
+        started = time.monotonic()
+        with pytest.raises(DocxConversionTimeoutError, match="within 0.5 seconds"):
+            unoserver_pool.convert_docx_to_pdf(b"slow: a document that keeps LibreOffice busy for a minute")
+        timed_out_after = time.monotonic() - started
+        _wait_until_idle(unoserver_pool)
+
+        assert process_names_in_group(stuck_group_id) == []
+        assert unoserver_pool.convert_docx_to_pdf(b"PK next").startswith(b"%PDF-")
+    finally:
+        unoserver_pool.stop()
+
+    assert 0.5 <= timed_out_after < 2
+    assert "recycling unoserver instance 0: its conversion failed with DocxConversionTimeoutError" in caplog.text
