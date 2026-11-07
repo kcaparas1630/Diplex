@@ -18,7 +18,7 @@ Diplex is an open-source document rendering engine. A consumer app sends a DOCX 
 
 > Decision: [ADR 009](009-engine-only.md)
 
-- **`core/` (Python): the engine, and the whole product.** One render endpoint: a DOCX or PDF in, an image of every page and the page sizes out. A DOCX is converted to PDF first, and that PDF is returned as well. Stateless: no database, no storage, no storage credentials. Shipped as a Docker image built from the root `Dockerfile`, which runs the API on port 8000 and one unoserver on the container's localhost; a DOCX gets 503 `converter_unavailable` for the few seconds LibreOffice takes to start.
+- **`core/` (Python): the engine, and the whole product.** One render endpoint: a DOCX or PDF in, an image of every page and the page sizes out. A DOCX is converted to PDF first, and that PDF is returned as well. Stateless: no database, no storage, no storage credentials. Shipped as a Docker image built from the root `Dockerfile`, which runs the API on port 8000; the engine starts its pool of unoserver instances on the container's localhost (§6), and a DOCX gets 503 `converter_unavailable` for the few seconds LibreOffice takes to start.
 - **The OpenAPI spec is the consumer's interface.** FastAPI generates it from the Pydantic models in `definition/`, the engine serves it at `/openapi.json`, and [docs/openapi.json](../openapi.json) publishes it; consumers in any language call the engine with an ordinary HTTP client.
 - **`playground/`:** a sample consumer app in this repo. It calls the engine over HTTP and stores the results in its own bucket and database, following §5. It is never published.
 
@@ -36,7 +36,7 @@ consumer app (server)
 
 - **Self-hosted only.** The consumer runs the engine image on its own network. Authentication is off by default (the engine must not be reachable from the internet) or a single static key set by environment variable.
 - **The consumer can add its own licensed fonts** by mounting them into the image ([ADR 005](005-fonts.md)).
-- **Settings are environment variables:** `DIPLEX_MAX_UPLOAD_BYTES` is the largest request body the engine accepts, 50 MiB (52,428,800 bytes) by default until §7's measurements set it.
+- **Settings are environment variables,** checked when the engine starts: `DIPLEX_MAX_UPLOAD_BYTES` is the largest request body the engine accepts, 50 MiB (52,428,800 bytes) by default until §7's measurements set it; `DIPLEX_UNOSERVER_INSTANCES` is the number of unoserver instances, 1 by default.
 - **Versioned releases.** Images are tagged by version and each request carries an API version.
 - **Licence:** MIT for all Diplex code. Every dependency must allow that ([ADR 007](007-mit-licence.md), [convention 004](../code-convention/004-dependencies-and-licensing.md)).
 

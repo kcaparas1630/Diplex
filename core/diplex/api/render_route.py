@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 from starlette.status import (
     HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -25,6 +25,7 @@ from diplex.engine import (
     DocxConversionError,
     PageTooLargeError,
     RenderedDocument,
+    UnoserverPool,
     UnoserverUnavailableError,
     UnreadablePdfError,
     UnsupportedDocumentError,
@@ -73,12 +74,12 @@ FIXED_MESSAGES = {DocxConversionError: "LibreOffice could not load or convert th
         "requestBody": {"content": {"multipart/form-data": {"encoding": {"document": {"contentType": DOCUMENT_PART_TYPES}}}}}
     },
 )
-def render_upload(document: Annotated[UploadFile, File(description="The DOCX or PDF to render.")]) -> Response:
+def render_upload(document: Annotated[UploadFile, File(description="The DOCX or PDF to render.")], request: Request) -> Response:
     """Render the uploaded DOCX or PDF, answering with its page sizes, page images and any converted PDF, or an error."""
     document_bytes = document.file.read()  # the upload size limit has already capped it
     with logged_render_job(len(document_bytes)) as render_job:
         try:
-            response_body, content_type = _render(document_bytes, render_job)
+            response_body, content_type = _render(document_bytes, render_job, request.app.state.unoserver_pool)
         except tuple(ERROR_RESPONSES) as error:
             status_code, error_code = ERROR_RESPONSES[type(error)]
             message = FIXED_MESSAGES.get(type(error), str(error))  # engine messages hold no document contents
@@ -91,12 +92,12 @@ def render_upload(document: Annotated[UploadFile, File(description="The DOCX or 
     return Response(content=response_body, media_type=content_type)
 
 
-def _render(document_bytes: bytes, render_job: RenderJob) -> tuple[bytes, str]:
-    """Render the upload into the response body and its content type, noting the job's type and page count."""
+def _render(document_bytes: bytes, render_job: RenderJob, unoserver_pool: UnoserverPool) -> tuple[bytes, str]:
+    """Render the upload into the response body and its content type, converting a DOCX with the pool."""
     document_type = detect_document_type(document_bytes)
     render_job.source_type = document_type.value
     if document_type is DocumentType.DOCX:
-        rendered_document = render_docx(document_bytes)
+        rendered_document = render_docx(document_bytes, unoserver_pool.convert_docx_to_pdf)
     else:
         rendered_document = render_pdf(document_bytes)
     render_job.page_count = len(rendered_document.page_sizes)

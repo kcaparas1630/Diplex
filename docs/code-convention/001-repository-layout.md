@@ -1,6 +1,6 @@
 # Convention 001: Repository Layout
 
-The planned layout. So far `core/diplex/` has its three top-level folders (`definition/`, `engine/`, `api/`), `api/form_data/`, `api/job_log/`, `engine/checks/`, `engine/docx_to_pdf/`, `engine/pdf_loading/` and `engine/pages/`; each deeper folder is added when it has code.
+The planned layout. So far `core/diplex/` has its three top-level folders (`definition/`, `engine/`, `api/`), `api/form_data/`, `api/job_log/`, `engine/checks/`, `engine/docx_to_pdf/` (with `unoserver_client/` and `unoserver_pool/`), `engine/pdf_loading/` and `engine/pages/`; each deeper folder is added when it has code.
 
 ```
 Dockerfile                     builds the engine image, tagged diplex-core (the engine, LibreOffice, unoserver, fonts)
@@ -9,7 +9,10 @@ core/                          Python engine (uv project diplex-core): the whole
   diplex/                      the importable package: import diplex
     definition/                Pydantic models: the API contract (source of the OpenAPI spec)
     engine/
-      docx_to_pdf/             unoserver pool and supervision
+      docx_to_pdf/             DOCX to PDF with LibreOffice
+        unoserver_client/      XML-RPC calls to one unoserver
+        unoserver_pool/        the engine's unoserver instances (ADR 011)
+          unoserver_process/   one instance: its own session, ports and scratch folder
       pdf_loading/             loads a PDF's bytes into PDFium, for pages/ and checks/
       pages/                   PDF -> WebP page images and page sizes
       checks/                  input checks: document type, size, pages, macros, zip bombs
@@ -23,8 +26,8 @@ docs/                          see docs/README.md
 scripts/
   conventions/                 the convention checker (convention 010)
   smoke_render/                renders every sample through a running engine and reports what happened
-  start-unoserver.sh           builds the engine image and runs unoserver for the engine tests
-  engine-entrypoint.sh         the image's command: starts unoserver on localhost and the engine API
+  start-unoserver.sh           builds the engine image and runs one unoserver on port 2003 for the engine tests
+  engine-entrypoint.sh         the image's command: runs the engine API, which starts its unoserver pool
 .claude/settings.json          Claude Code project settings: the Stop hook that runs the checker
 samples/                       real test documents (git-ignored, never committed)
 ```

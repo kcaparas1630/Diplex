@@ -15,6 +15,7 @@ from uvicorn.importer import import_from_string
 
 from diplex.api import app, create_app
 from diplex.api.upload_limit_setting import MAX_UPLOAD_BYTES_VARIABLE
+from stand_in_unoserver_pool import StandInUnoserverPool
 
 SERVER_START_TIMEOUT_SECONDS = 10
 
@@ -42,7 +43,7 @@ def test_create_app_limits_uploads_to_the_configured_size(monkeypatch):
     """The app answers 413 to a body over DIPLEX_MAX_UPLOAD_BYTES, on any route, before routing."""
     monkeypatch.setenv(MAX_UPLOAD_BYTES_VARIABLE, "10")
 
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
         over_limit_response = client.post("/health", content=b"x" * 11)
         within_limit_response = client.post("/health", content=b"x" * 10)
 
@@ -59,10 +60,10 @@ def test_create_app_refuses_an_unreadable_limit(monkeypatch):
 
 
 def test_uvicorn_serves_health_over_http():
-    """uvicorn serves GET /health over real HTTP."""
+    """uvicorn serves GET /health over real HTTP (without the lifespan, so no unoserver starts)."""
     listener = socket.create_server(("127.0.0.1", 0))
     port = listener.getsockname()[1]
-    server = uvicorn.Server(uvicorn.Config("diplex.api:app", log_level="warning"))
+    server = uvicorn.Server(uvicorn.Config("diplex.api:app", log_level="warning", lifespan="off"))
     server_thread = threading.Thread(target=server.run, kwargs={"sockets": [listener]}, daemon=True)
     server_thread.start()
     try:
