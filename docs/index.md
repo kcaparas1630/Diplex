@@ -12,6 +12,7 @@
 - [008 PDF to DOCX pipeline](adr/008-pdf-to-docx-pipeline.md) (superseded)
 - [009 Engine only](adr/009-engine-only.md)
 - [010 Render response format](adr/010-render-response-format.md)
+- [011 unoserver pool dispatcher](adr/011-unoserver-pool-dispatcher.md)
 
 ## [OpenAPI Spec](openapi.json)
 
