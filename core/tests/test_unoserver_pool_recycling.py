@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from diplex.engine import InstanceState, UnoserverPool, UnoserverPoolSettings, UnoserverUnavailableError
+from diplex.engine import DocxConversionError, InstanceState, UnoserverPool, UnoserverPoolSettings, UnoserverUnavailableError
 from localhost_ports import find_free_port_range
 from process_groups import process_names_in_group
 
@@ -88,3 +88,52 @@ def test_a_recycle_deletes_the_old_profile(one_instance_pool):
     _wait_until_idle(one_instance_pool)
 
     assert not (profile_folder / "left-by-a-document.xcu").exists()
+
+
+def test_a_conversion_that_worked_keeps_its_instance(one_instance_pool, start_log):
+    """Successful conversions don't recycle: two in a row run on the same unoserver."""
+    first_pdf = one_instance_pool.convert_docx_to_pdf(b"PK first")
+    second_pdf = one_instance_pool.convert_docx_to_pdf(b"PK second")
+
+    assert first_pdf == second_pdf
+    assert one_instance_pool.instances[0].state is InstanceState.IDLE
+    assert len(_start_lines(start_log)) == 1
+
+
+@pytest.mark.parametrize(
+    ("docx_bytes", "expected_error"),
+    [(b"fault: LibreOffice refuses this", DocxConversionError), (b"crash the stand-in unoserver", UnoserverUnavailableError)],
+    ids=["libreoffice-fault", "unoserver-died"],
+)
+def test_any_failed_conversion_recycles_its_instance_before_the_next_job(one_instance_pool, start_log, caplog, docx_bytes, expected_error):
+    """After a failed conversion, the next DOCX runs on a fresh unoserver, never on the one that failed."""
+    caplog.set_level(logging.INFO, logger="diplex.unoserver_pool")
+    first_process_id = _start_lines(start_log)[0]["pid"]
+
+    with pytest.raises(expected_error):
+        one_instance_pool.convert_docx_to_pdf(docx_bytes)
+    next_pdf = one_instance_pool.convert_docx_to_pdf(b"PK next")  # waits for the recycle
+
+    second_process_id = _start_lines(start_log)[1]["pid"]
+    assert second_process_id != first_process_id
+    assert next_pdf == f"%PDF-1.7 converted by {second_process_id}".encode()
+    assert "recycling unoserver instance 0" in caplog.text
+
+
+def test_a_failed_conversion_recycles_only_its_own_instance(start_log):
+    """With two instances, a failure on one recycles that one; the other keeps its unoserver."""
+    unoserver_pool = UnoserverPool(
+        UnoserverPoolSettings(instance_count=2, first_port=find_free_port_range(4), unoserver_command=STAND_IN_UNOSERVER)
+    )
+    unoserver_pool.start()
+    try:
+        deadline = time.monotonic() + INSTANCE_START_SECONDS
+        while any(pooled_instance.state is not InstanceState.IDLE for pooled_instance in unoserver_pool.instances):
+            assert time.monotonic() < deadline, "the instances did not become idle"
+            time.sleep(0.02)
+        with pytest.raises(DocxConversionError):
+            unoserver_pool.convert_docx_to_pdf(b"fault on instance 0")  # the first idle instance takes it
+        assert unoserver_pool.instances[1].state is InstanceState.IDLE
+        assert unoserver_pool.instances[0].state in {InstanceState.RECYCLING, InstanceState.STARTING}
+    finally:
+        unoserver_pool.stop()

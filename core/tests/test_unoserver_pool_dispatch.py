@@ -9,7 +9,6 @@ import pytest
 
 from diplex.engine import (
     ConverterBusyError,
-    DocxConversionError,
     InstanceState,
     UnoserverPool,
     UnoserverPoolSettings,
@@ -174,18 +173,6 @@ def test_an_instance_still_starting_when_the_wait_ends_gives_unavailable(monkeyp
     try:
         with pytest.raises(UnoserverUnavailableError, match="no unoserver instance was ready within 0.3 seconds"):
             unoserver_pool.convert_docx_to_pdf(b"PK too early")
-    finally:
-        unoserver_pool.stop()
-
-
-def test_a_document_libreoffice_refuses_leaves_the_instance_idle():
-    """A conversion fault fails that DOCX only; the instance is idle again for the next one."""
-    unoserver_pool = _started_pool(instance_count=1)
-    try:
-        with pytest.raises(DocxConversionError):
-            unoserver_pool.convert_docx_to_pdf(b"fault: LibreOffice refuses this")
-        assert unoserver_pool.instances[0].state is InstanceState.IDLE
-        assert unoserver_pool.convert_docx_to_pdf(b"PK next").startswith(b"%PDF-")
     finally:
         unoserver_pool.stop()
 
