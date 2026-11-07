@@ -4,13 +4,14 @@ import pytest
 
 from diplex.api import create_app
 from diplex.api.unoserver_pool_settings import INSTANCE_COUNT_VARIABLE, read_unoserver_pool_settings
+from diplex.engine import count_available_cpus
 
 
-def test_one_instance_by_default(monkeypatch):
-    """Without DIPLEX_UNOSERVER_INSTANCES, the pool runs one instance."""
+def test_one_instance_per_available_vcpu_by_default(monkeypatch):
+    """Without DIPLEX_UNOSERVER_INSTANCES, the pool runs one instance per vCPU available to the engine."""
     monkeypatch.delenv(INSTANCE_COUNT_VARIABLE, raising=False)
 
-    assert read_unoserver_pool_settings().instance_count == 1
+    assert read_unoserver_pool_settings().instance_count == count_available_cpus()
 
 
 def test_the_instance_count_comes_from_the_environment(monkeypatch):

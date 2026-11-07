@@ -36,7 +36,7 @@ consumer app (server)
 
 - **Self-hosted only.** The consumer runs the engine image on its own network. Authentication is off by default (the engine must not be reachable from the internet) or a single static key set by environment variable.
 - **The consumer can add its own licensed fonts** by mounting them into the image ([ADR 005](005-fonts.md)).
-- **Settings are environment variables,** checked when the engine starts: `DIPLEX_MAX_UPLOAD_BYTES` is the largest request body the engine accepts, 50 MiB (52,428,800 bytes) by default until §7's measurements set it; `DIPLEX_UNOSERVER_INSTANCES` is the number of unoserver instances, 1 by default.
+- **Settings are environment variables,** checked when the engine starts: `DIPLEX_MAX_UPLOAD_BYTES` is the largest request body the engine accepts, 50 MiB (52,428,800 bytes) by default until §7's measurements set it; `DIPLEX_UNOSERVER_INSTANCES` is the number of unoserver instances, by default the vCPUs available to the container (the CPUs it may run on, capped by a `docker run --cpus` quota rounded up).
 - **Versioned releases.** Images are tagged by version and each request carries an API version.
 - **Licence:** MIT for all Diplex code. Every dependency must allow that ([ADR 007](007-mit-licence.md), [convention 004](../code-convention/004-dependencies-and-licensing.md)).
 
