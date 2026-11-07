@@ -158,3 +158,16 @@ def test_job_logs_go_to_stderr_through_one_handler():
 
     assert len(render_job_logger.handlers) == 1
     assert render_job_logger.level == logging.INFO
+
+
+def test_a_malformed_upload_leaves_none_of_its_bytes_in_the_logs(caplog):
+    """python-multipart's warning quotes the byte it stopped at; it is kept out, and the client still gets 400."""
+    caplog.set_level(logging.DEBUG)
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/render", content=b"Zebra payroll", headers={"content-type": "multipart/form-data; boundary=missing"}
+        )
+
+    assert response.status_code == 400
+    assert not [record for record in caplog.records if record.name.startswith("python_multipart")]

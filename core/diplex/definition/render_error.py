@@ -8,10 +8,13 @@ from pydantic import BaseModel, Field
 class RenderErrorCode(StrEnum):
     """What went wrong, for consumers to branch on."""
 
+    INVALID_REQUEST = "invalid_request"  # 400 or 422: not multipart/form-data with a file part named document
     UPLOAD_TOO_LARGE = "upload_too_large"  # 413: the request body is over the engine's upload limit
     UNSUPPORTED_DOCUMENT_TYPE = "unsupported_document_type"  # 415: the upload is not a PDF or a DOCX
     UNREADABLE_PDF = "unreadable_pdf"  # 422: the PDF is damaged, encrypted or not really a PDF
     PAGE_TOO_LARGE = "page_too_large"  # 422: a page's image would be over the pixel limits
+    DOCX_CONVERSION_FAILED = "docx_conversion_failed"  # 422: LibreOffice could not load or convert the DOCX
+    CONVERTER_UNAVAILABLE = "converter_unavailable"  # 503: unoserver, which converts a DOCX, is not answering
     INTERNAL_ERROR = "internal_error"  # 500: the engine failed; its log has the job ID from the message
 
 

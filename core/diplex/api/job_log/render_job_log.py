@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 
 render_job_logger = logging.getLogger("diplex.render")
 JOB_LINE_FORMAT = "render job=%s source=%s bytes=%d pages=%s duration_ms=%d outcome=%s"
+UPLOAD_PARSER_LOGGER = "python_multipart"  # its warnings on a malformed upload quote the bytes it stopped at
 
 
 @dataclass
@@ -59,6 +60,11 @@ def send_job_logs_to_stderr() -> None:
     stderr_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
     render_job_logger.addHandler(stderr_handler)
     render_job_logger.setLevel(logging.INFO)
+
+
+def quiet_upload_parser_warnings() -> None:
+    """Keep python-multipart's warnings out of the logs; the parse error still reaches FastAPI, which answers 400."""
+    logging.getLogger(UPLOAD_PARSER_LOGGER).setLevel(logging.ERROR)
 
 
 def _job_line_level(outcome: str) -> int:

@@ -2,7 +2,7 @@
 
 from .health_status import HealthStatus
 from .render_error import RenderError, RenderErrorCode
-from .render_manifest import PageSize, RenderManifest
+from .render_manifest import PageSize, RenderManifest, RenderResponseParts
 from .render_parts import (
     CONVERTED_PDF_FILENAME,
     RENDER_PART_MEDIA_TYPES,
@@ -19,5 +19,6 @@ __all__ = [
     "RenderErrorCode",
     "RenderManifest",
     "RenderPart",
+    "RenderResponseParts",
     "page_image_filename",
 ]

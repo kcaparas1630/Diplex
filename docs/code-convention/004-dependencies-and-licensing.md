@@ -29,3 +29,4 @@
 | httpx2 (with httpcore2) | BSD-3-Clause | FastAPI's `TestClient` in the API tests (development only) |
 | truststore | MIT | installed with httpx2 (development only) |
 | hatchling | MIT | builds the `diplex-core` package |
+| uv | MIT or Apache-2.0 (its repository ships both licence files) | installs the engine from `uv.lock` in the engine image, pinned to 0.13.6 |

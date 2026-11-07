@@ -1,0 +1,276 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Diplex engine",
+    "summary": "Renders each page of a DOCX or PDF as an image.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Check that the engine is up",
+        "description": "Report that the engine is up.",
+        "operationId": "report_health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/render": {
+      "post": {
+        "tags": [
+          "render"
+        ],
+        "summary": "Render each page of a DOCX or PDF as a WebP image",
+        "description": "Render the uploaded DOCX or PDF, answering with its page sizes, page images and any converted PDF, or an error.",
+        "operationId": "render_upload_render_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_render_upload_render_post"
+              },
+              "encoding": {
+                "document": {
+                  "contentType": "application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The page sizes and page images, as multipart/form-data.",
+            "content": {
+              "multipart/form-data": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderResponseParts"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request: a body that isn't readable multipart/form-data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "upload_too_large: over DIPLEX_MAX_UPLOAD_BYTES.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "unsupported_document_type: not a PDF or a DOCX.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request, unreadable_pdf, page_too_large or docx_conversion_failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error: the message names the job in the engine's log.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "converter_unavailable: unoserver is not answering; try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_render_upload_render_post": {
+        "properties": {
+          "document": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Document",
+            "description": "The DOCX or PDF to render."
+          }
+        },
+        "type": "object",
+        "required": [
+          "document"
+        ],
+        "title": "Body_render_upload_render_post"
+      },
+      "HealthStatus": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "description": "Always ok.",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "HealthStatus",
+        "description": "{\"status\": \"ok\"} while the engine is up."
+      },
+      "PageSize": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Index",
+            "description": "Page number, from 1."
+          },
+          "width": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Width",
+            "description": "Width in points as the page is shown (rotation applied), to 0.01 pt."
+          },
+          "height": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Height",
+            "description": "Height in points as the page is shown (rotation applied), to 0.01 pt."
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "width",
+          "height"
+        ],
+        "title": "PageSize",
+        "description": "A page's number and size in points."
+      },
+      "RenderError": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/RenderErrorCode",
+            "description": "What went wrong; new codes may be added, so handle unknown ones."
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "What went wrong in plain words, for logs. Never repeats document contents."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "RenderError",
+        "description": "An error response's body."
+      },
+      "RenderErrorCode": {
+        "type": "string",
+        "enum": [
+          "invalid_request",
+          "upload_too_large",
+          "unsupported_document_type",
+          "unreadable_pdf",
+          "page_too_large",
+          "docx_conversion_failed",
+          "converter_unavailable",
+          "internal_error"
+        ],
+        "title": "RenderErrorCode",
+        "description": "What went wrong, for consumers to branch on."
+      },
+      "RenderManifest": {
+        "properties": {
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/PageSize"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Pages",
+            "description": "Each page's size, first page first."
+          }
+        },
+        "type": "object",
+        "required": [
+          "pages"
+        ],
+        "title": "RenderManifest",
+        "description": "Every page's size in page order; its length is the page count."
+      },
+      "RenderResponseParts": {
+        "properties": {
+          "manifest": {
+            "$ref": "#/components/schemas/RenderManifest",
+            "description": "JSON part, sent first, with no file name, so formData().get('manifest') is a string to JSON.parse."
+          },
+          "page": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "image/webp"
+            },
+            "type": "array",
+            "title": "Page",
+            "description": "One lossless WebP per page, in page order, every part named page; file names page-0001.webp, page-0002.webp, ... Read them with formData().getAll('page')."
+          },
+          "pdf": {
+            "type": "string",
+            "contentMediaType": "application/pdf",
+            "title": "Pdf",
+            "description": "Only for a DOCX upload: the PDF it was converted to, named document.pdf."
+          }
+        },
+        "type": "object",
+        "required": [
+          "manifest",
+          "page"
+        ],
+        "title": "RenderResponseParts",
+        "description": "A successful /render response's multipart/form-data parts, by name: what `await response.formData()` holds."
+      }
+    }
+  }
+}

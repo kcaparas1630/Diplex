@@ -37,12 +37,17 @@ Diplex is an open-source (MIT), self-hosted document rendering engine for consum
 ```
 python -m scripts.conventions                  # convention check (also the Stop hook, with --hook)
 python -m pytest scripts/conventions/tests     # checker tests
+python -m scripts.smoke_render http://127.0.0.1:8000   # renders every sample through a running engine; prints a Markdown table
+python -m pytest scripts/smoke_render/tests    # smoke test script tests
 
 docker build -t diplex-core .                  # builds the engine image from the root Dockerfile
 bash scripts/start-unoserver.sh                # builds the engine image and runs unoserver for the engine tests; Ctrl+C stops it
+docker run --rm -p 127.0.0.1:8000:8000 diplex-core   # runs the engine API on 127.0.0.1:8000 with unoserver inside; -e DIPLEX_MAX_UPLOAD_BYTES=... sets the limit
+cd core && DIPLEX_ENGINE_URL=http://127.0.0.1:8000 uv run pytest tests/test_engine_container.py   # tests that running container
 cd core && uv sync                             # engine package and its test tools
-cd core && uv run pytest                       # engine tests; the unoserver tests skip unless it is running
-cd core && uv run uvicorn diplex.api:app       # serves the engine API on 127.0.0.1:8000 (GET /health)
+cd core && uv run pytest                       # engine tests; the unoserver and container tests skip unless those run, the entrypoint tests off Linux
+cd core && uv run uvicorn diplex.api:app       # serves the engine API on 127.0.0.1:8000 (GET /health, POST /render)
+cd core && uv run python -m diplex.openapi_export ../docs/openapi.json   # rewrites the published OpenAPI spec after a contract change
 ```
 
 The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). Add the playground commands here once it exists.

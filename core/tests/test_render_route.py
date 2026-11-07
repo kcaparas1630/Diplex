@@ -12,7 +12,7 @@ from PIL import Image
 from diplex.api import create_app, render_route
 from diplex.api.upload_limit_setting import MAX_UPLOAD_BYTES_VARIABLE
 from diplex.definition import RenderError, RenderErrorCode, RenderManifest
-from diplex.engine import PageTooLargeError
+from diplex.engine import DocxConversionError, PageTooLargeError, UnoserverUnavailableError, document_render
 from diplex.engine.pages import read_page_sizes
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
@@ -95,12 +95,58 @@ def test_a_non_document_gets_415(upload_bytes):
     assert _error(response).code is RenderErrorCode.UNSUPPORTED_DOCUMENT_TYPE
 
 
-def test_a_docx_gets_415_until_docx_rendering_is_added():
-    """A real DOCX is recognised, but only PDF uploads are rendered so far."""
+def test_a_docx_comes_back_with_the_pdf_it_became(monkeypatch):
+    """A DOCX is converted, rendered through the PDF path, and its PDF comes back as the last part, document.pdf."""
+    converted_pdf = _sample_bytes("irs-form-1040-2025.pdf")  # stands in for unoserver's output
+    converted_docx = []
+    monkeypatch.setattr(document_render, "convert_docx_to_pdf", lambda docx_bytes: converted_docx.append(docx_bytes) or converted_pdf)
+    docx_bytes = _sample_bytes("siu-dissertation-template.docx")
+
+    response = _post_render(docx_bytes, file_name="thesis.docx")
+
+    assert response.status_code == 200
+    assert converted_docx == [docx_bytes]
+    manifest_part, *page_parts, pdf_part = _response_parts(response)
+    assert RenderManifest.model_validate_json(manifest_part.get_payload(decode=True)).pages == read_page_sizes(converted_pdf)
+    assert [part.get_filename() for part in page_parts] == ["page-0001.webp", "page-0002.webp"]
+    assert pdf_part.get_param("name", header="content-disposition") == "pdf"
+    assert pdf_part.get_filename() == "document.pdf"
+    assert pdf_part.get_content_type() == "application/pdf"
+    assert pdf_part.get_payload(decode=True) == converted_pdf
+
+
+def test_a_docx_gets_503_when_unoserver_is_not_answering(monkeypatch):
+    """If unoserver can't be reached, the upload gets 503 converter_unavailable, to retry later."""
+
+    def unreachable_unoserver(docx_bytes):
+        """Fail as convert_docx_to_pdf does when nothing listens on unoserver's port."""
+        raise UnoserverUnavailableError("unoserver is not answering on http://127.0.0.1:2003: connection refused")
+
+    monkeypatch.setattr(document_render, "convert_docx_to_pdf", unreachable_unoserver)
+
     response = _post_render(_sample_bytes("siu-dissertation-template.docx"), file_name="thesis.docx")
 
-    assert response.status_code == 415
-    assert _error(response).message == "only PDF uploads are rendered so far"
+    assert response.status_code == 503
+    assert _error(response).code is RenderErrorCode.CONVERTER_UNAVAILABLE
+
+
+def test_a_docx_libreoffice_cannot_load_gets_422_with_a_plain_message(monkeypatch):
+    """A failed conversion gets 422 docx_conversion_failed, without unoserver's message about LibreOffice's internals."""
+    unoserver_message = "<class 'RuntimeError'>:Could not load document <remote file> using the MS Word 2007 XML filter."
+
+    def failing_conversion(docx_bytes):
+        """Fail as convert_docx_to_pdf does when LibreOffice can't load the document."""
+        raise DocxConversionError(f"unoserver could not convert the document: {unoserver_message}")
+
+    monkeypatch.setattr(document_render, "convert_docx_to_pdf", failing_conversion)
+
+    response = _post_render(_sample_bytes("siu-dissertation-template.docx"), file_name="thesis.docx")
+
+    assert response.status_code == 422
+    assert _error(response) == RenderError(
+        code=RenderErrorCode.DOCX_CONVERSION_FAILED, message="LibreOffice could not load or convert the DOCX"
+    )
+    assert b"RuntimeError" not in response.content
 
 
 def test_a_pdf_pdfium_cannot_read_gets_422():
@@ -127,12 +173,33 @@ def test_a_page_too_large_gets_422_with_its_page_number(monkeypatch):
     assert "page 2" in _error(response).message
 
 
-def test_a_request_without_the_document_part_gets_422():
-    """A form without a document part fails FastAPI's validation of the request."""
+def test_a_request_without_the_document_part_gets_422_invalid_request():
+    """A form without a document part gets 422 invalid_request, not FastAPI's answer that quotes what was sent."""
     with TestClient(create_app()) as client:
-        response = client.post("/render", files={"wrong_name": ("upload.pdf", b"%PDF-1.7", "application/pdf")})
+        response = client.post("/render", data={"wrong_name": "Text from the document"})
 
     assert response.status_code == 422
+    assert _error(response).code is RenderErrorCode.INVALID_REQUEST
+    assert b"Text from the document" not in response.content
+
+
+def test_a_body_that_is_not_multipart_gets_400_invalid_request():
+    """A multipart content type over a body FastAPI can't parse gets 400 invalid_request."""
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/render", content=b"not multipart at all", headers={"content-type": "multipart/form-data; boundary=missing"}
+        )
+
+    assert response.status_code == 400
+    assert _error(response).code is RenderErrorCode.INVALID_REQUEST
+
+
+def test_other_http_errors_keep_fastapis_answer():
+    """A route that doesn't exist still gets FastAPI's 404."""
+    with TestClient(create_app()) as client:
+        response = client.get("/no-such-route")
+
+    assert (response.status_code, response.json()) == (404, {"detail": "Not Found"})
 
 
 def test_an_upload_over_the_limit_gets_413_without_rendering(monkeypatch):

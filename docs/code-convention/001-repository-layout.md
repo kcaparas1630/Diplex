@@ -3,7 +3,7 @@
 The planned layout. So far `core/diplex/` has its three top-level folders (`definition/`, `engine/`, `api/`), `api/form_data/`, `api/job_log/`, `engine/checks/`, `engine/docx_to_pdf/`, `engine/pdf_loading/` and `engine/pages/`; each deeper folder is added when it has code.
 
 ```
-Dockerfile                     builds the engine image, tagged diplex-core (Python, LibreOffice, unoserver, fonts)
+Dockerfile                     builds the engine image, tagged diplex-core (the engine, LibreOffice, unoserver, fonts)
 LICENSE                        MIT
 core/                          Python engine (uv project diplex-core): the whole product
   diplex/                      the importable package: import diplex
@@ -22,7 +22,9 @@ playground/                    sample consumer app: calls the engine over HTTP a
 docs/                          see docs/README.md
 scripts/
   conventions/                 the convention checker (convention 010)
+  smoke_render/                renders every sample through a running engine and reports what happened
   start-unoserver.sh           builds the engine image and runs unoserver for the engine tests
+  engine-entrypoint.sh         the image's command: starts unoserver on localhost and the engine API
 .claude/settings.json          Claude Code project settings: the Stop hook that runs the checker
 samples/                       real test documents (git-ignored, never committed)
 ```
