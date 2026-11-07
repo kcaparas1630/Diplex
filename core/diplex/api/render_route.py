@@ -21,6 +21,7 @@ from diplex.definition import (
     RenderResponseParts,
 )
 from diplex.engine import (
+    ConverterBusyError,
     DocumentType,
     DocxConversionError,
     PageTooLargeError,
@@ -46,6 +47,7 @@ ERROR_RESPONSES = {
     PageTooLargeError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.PAGE_TOO_LARGE),
     DocxConversionError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_CONVERSION_FAILED),
     UnoserverUnavailableError: (HTTP_503_SERVICE_UNAVAILABLE, RenderErrorCode.CONVERTER_UNAVAILABLE),
+    ConverterBusyError: (HTTP_503_SERVICE_UNAVAILABLE, RenderErrorCode.CONVERTER_BUSY),
 }
 # What the OpenAPI spec says /render answers; every error is a RenderError in JSON.
 RESPONSES_IN_SPEC = {
@@ -58,7 +60,11 @@ RESPONSES_IN_SPEC = {
         "description": "invalid_request, unreadable_pdf, page_too_large or docx_conversion_failed.",
     },
     500: {"model": RenderError, "description": "internal_error: the message names the job in the engine's log."},
-    503: {"model": RenderError, "description": "converter_unavailable: unoserver is not answering; try again later."},
+    503: {
+        "model": RenderError,
+        "description": "converter_unavailable: unoserver is not answering, or converter_busy: every unoserver instance "
+        "stayed busy for DIPLEX_CONVERTER_WAIT_SECONDS. Try again later.",
+    },
 }
 # The part's own content type is ignored (the type comes from the bytes), but these are what to send.
 DOCUMENT_PART_TYPES = "application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document"

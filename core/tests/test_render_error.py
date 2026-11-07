@@ -22,6 +22,7 @@ def test_codes_are_the_ones_consumers_branch_on():
         "page_too_large",
         "docx_conversion_failed",
         "converter_unavailable",
+        "converter_busy",
         "internal_error",
     ]
 
