@@ -11,8 +11,9 @@ core/                          Python engine (uv project diplex-core): the whole
     engine/
       docx_to_pdf/             DOCX to PDF with LibreOffice
         unoserver_client/      XML-RPC calls to one unoserver
-        unoserver_pool/        the engine's unoserver instances (ADR 011)
-          unoserver_process/   one instance: its own session, ports and scratch folder
+        unoserver_pool/        the engine's unoserver instances and the dispatcher (ADR 011)
+          pooled_instance/     one instance's state and keeper thread
+            unoserver_process/ its process: its own session, ports and scratch folder
       pdf_loading/             loads a PDF's bytes into PDFium, for pages/ and checks/
       pages/                   PDF -> WebP page images and page sizes
       checks/                  input checks: document type, size, pages, macros, zip bombs

@@ -15,6 +15,7 @@ class RenderErrorCode(StrEnum):
     PAGE_TOO_LARGE = "page_too_large"  # 422: a page's image would be over the pixel limits
     DOCX_CONVERSION_FAILED = "docx_conversion_failed"  # 422: LibreOffice could not load or convert the DOCX
     CONVERTER_UNAVAILABLE = "converter_unavailable"  # 503: unoserver, which converts a DOCX, is not answering
+    CONVERTER_BUSY = "converter_busy"  # 503: every unoserver instance stayed busy for DIPLEX_CONVERTER_WAIT_SECONDS
     INTERNAL_ERROR = "internal_error"  # 500: the engine failed; its log has the job ID from the message
 
 

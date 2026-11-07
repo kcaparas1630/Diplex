@@ -14,7 +14,7 @@ import pytest
 
 ENGINE_URL = os.environ.get("DIPLEX_ENGINE_URL", "").rstrip("/")
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
-UNOSERVER_START_SECONDS = 60  # LibreOffice takes a few seconds to start; until then a DOCX gets 503
+UNOSERVER_START_SECONDS = 60  # a DOCX waits for LibreOffice to start, but can still get 503 (a busy pool, or no wait set)
 
 pytestmark = pytest.mark.skipif(not ENGINE_URL, reason="DIPLEX_ENGINE_URL is not set to a running engine container")
 
@@ -66,7 +66,7 @@ def test_a_pdf_renders():
 
 
 def test_a_docx_renders_through_the_containers_unoserver():
-    """A DOCX is converted by the unoserver inside the container, retrying its 503 while LibreOffice starts."""
+    """A DOCX is converted by the unoserver pool inside the container, retrying any 503 while LibreOffice starts."""
     docx_bytes = _sample_bytes("poi-comments.docx")
     deadline = time.monotonic() + UNOSERVER_START_SECONDS
     status, content_type, body = _post_render(docx_bytes)

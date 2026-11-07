@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from diplex.engine.docx_to_pdf.unoserver_pool.unoserver_process import InstancePorts, start_unoserver_process
+from diplex.engine.docx_to_pdf.unoserver_pool.pooled_instance.unoserver_process import InstancePorts, start_unoserver_process
 from localhost_ports import find_free_port_range, wait_until_closed, wait_until_listening
 
 STAND_IN_UNOSERVER = (sys.executable, str(Path(__file__).with_name("stand_in_unoserver.py")))
