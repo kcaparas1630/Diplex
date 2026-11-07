@@ -10,6 +10,7 @@ import pytest
 from diplex.engine.docx_to_pdf import (
     DEFAULT_UNOSERVER_PORT,
     DocxConversionError,
+    DocxConversionTimeoutError,
     UnoserverUnavailableError,
     convert_docx_to_pdf,
 )
@@ -136,12 +137,15 @@ def test_a_reply_that_is_not_a_pdf_raises_a_conversion_error(fake_unoserver):
         convert_docx_to_pdf(STAND_IN_DOCX, port=fake_unoserver.port)
 
 
-def test_a_conversion_slower_than_the_timeout_raises_a_conversion_error(fake_unoserver):
-    """A conversion that outlasts timeout_seconds raises DocxConversionError instead of waiting on."""
+def test_a_conversion_slower_than_the_timeout_raises_a_timeout_error(fake_unoserver):
+    """A conversion that outlasts timeout_seconds raises DocxConversionTimeoutError, a DocxConversionError, saying so."""
     fake_unoserver.reply_delay_seconds = 10
 
-    with pytest.raises(DocxConversionError, match="within 0.3 seconds"):
+    with pytest.raises(DocxConversionTimeoutError) as raised:
         convert_docx_to_pdf(STAND_IN_DOCX, port=fake_unoserver.port, timeout_seconds=0.3)
+
+    assert str(raised.value) == "LibreOffice did not finish converting the DOCX within 0.3 seconds"
+    assert isinstance(raised.value, DocxConversionError)
 
 
 def test_nothing_listening_on_the_port_raises_unavailable(closed_port):

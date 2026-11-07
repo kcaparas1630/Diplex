@@ -14,6 +14,7 @@ from .pooled_instance import InstancePorts, InstanceState, PooledInstance
 unoserver_pool_logger = logging.getLogger("diplex.unoserver_pool")
 FIRST_UNOSERVER_PORT = 2002  # instance 0 gets unoserver's default ports: 2002 for UNO, 2003 for XML-RPC
 DEFAULT_WAIT_SECONDS = 30.0
+DEFAULT_CONVERSION_TIMEOUT_SECONDS = 120.0  # the benchmark's slowest successful conversion took 75 s
 DEFAULT_READY_TIMEOUT_SECONDS = 60.0  # unoserver sleeps 7 s, then tries LibreOffice for up to about 40 s
 # States from which an instance may still become idle, so a conversion is worth waiting for.
 STATES_WORTH_WAITING_FOR = frozenset({InstanceState.STARTING, InstanceState.BUSY, InstanceState.RECYCLING})
@@ -25,10 +26,11 @@ class ConverterBusyError(Exception):
 
 @dataclass(frozen=True)
 class UnoserverPoolSettings:
-    """How the pool runs: how many instances, how long a conversion waits for one, and how each one starts."""
+    """How the pool runs: how many instances, how long a conversion waits for one and may take, and how each one starts."""
 
     instance_count: int
     wait_seconds: float = DEFAULT_WAIT_SECONDS
+    conversion_timeout_seconds: float = DEFAULT_CONVERSION_TIMEOUT_SECONDS
     first_port: int = FIRST_UNOSERVER_PORT
     unoserver_command: tuple[str, ...] = ("unoserver",)
     ready_timeout_seconds: float = DEFAULT_READY_TIMEOUT_SECONDS
@@ -85,7 +87,11 @@ class UnoserverPool:
         """Convert a DOCX on an idle instance, which converts nothing else meanwhile and is recycled if the conversion fails."""
         pooled_instance = self._claim_idle_instance()
         try:
-            pdf_bytes = convert_docx_to_pdf(docx_bytes, port=pooled_instance.ports.xmlrpc_port)
+            pdf_bytes = convert_docx_to_pdf(
+                docx_bytes,
+                port=pooled_instance.ports.xmlrpc_port,
+                timeout_seconds=self.settings.conversion_timeout_seconds,
+            )
         except BaseException as conversion_failure:
             with self._condition:
                 pooled_instance.release(conversion_failure)

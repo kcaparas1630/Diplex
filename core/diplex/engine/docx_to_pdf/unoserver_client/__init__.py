@@ -3,6 +3,7 @@
 from .unoserver_conversion import (
     DEFAULT_UNOSERVER_PORT,
     DocxConversionError,
+    DocxConversionTimeoutError,
     UnoserverUnavailableError,
     convert_docx_to_pdf,
 )
@@ -11,6 +12,7 @@ from .unoserver_readiness import unoserver_answers
 __all__ = [
     "DEFAULT_UNOSERVER_PORT",
     "DocxConversionError",
+    "DocxConversionTimeoutError",
     "UnoserverUnavailableError",
     "convert_docx_to_pdf",
     "unoserver_answers",

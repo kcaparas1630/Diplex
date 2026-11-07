@@ -4,6 +4,7 @@ from .checks import DocumentType, UnsupportedDocumentError, detect_document_type
 from .docx_to_pdf import (
     ConverterBusyError,
     DocxConversionError,
+    DocxConversionTimeoutError,
     InstanceState,
     UnoserverPool,
     UnoserverPoolSettings,
@@ -18,6 +19,7 @@ __all__ = [
     "ConverterBusyError",
     "DocumentType",
     "DocxConversionError",
+    "DocxConversionTimeoutError",
     "InstanceState",
     "PageTooLargeError",
     "RenderedDocument",
