@@ -82,13 +82,17 @@ class UnoserverPool:
             self._scratch_root = None
 
     def convert_docx_to_pdf(self, docx_bytes: bytes) -> bytes:
-        """Convert a DOCX on an idle instance, which converts nothing else meanwhile."""
+        """Convert a DOCX on an idle instance, which converts nothing else meanwhile and is recycled if the conversion fails."""
         pooled_instance = self._claim_idle_instance()
         try:
-            return convert_docx_to_pdf(docx_bytes, port=pooled_instance.ports.xmlrpc_port)
-        finally:
+            pdf_bytes = convert_docx_to_pdf(docx_bytes, port=pooled_instance.ports.xmlrpc_port)
+        except BaseException as conversion_failure:
             with self._condition:
-                pooled_instance.release()
+                pooled_instance.release(conversion_failure)
+            raise
+        with self._condition:
+            pooled_instance.release(None)
+        return pdf_bytes
 
     def _claim_idle_instance(self) -> PooledInstance:
         """Take an idle instance, waiting up to wait_seconds while others are busy or starting."""
