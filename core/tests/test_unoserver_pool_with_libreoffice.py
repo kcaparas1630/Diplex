@@ -1,6 +1,8 @@
 """Tests the pool with real unoserver and LibreOffice; skipped unless the unoserver command is on PATH (see AGENTS.md)."""
 
+import os
 import shutil
+import signal
 import threading
 import time
 import xmlrpc.client
@@ -112,3 +114,19 @@ def test_killing_an_instance_takes_libreoffice_and_frees_its_ports_for_a_fresh_o
         _wait_until_answering(ports.xmlrpc_port)
     finally:
         second_process.kill()
+
+
+def test_an_instance_whose_unoserver_is_killed_is_restarted_with_a_fresh_libreoffice(running_pool):
+    """Killing unoserver alone leaves soffice.bin behind; the keeper kills that group and starts a fresh instance."""
+    _wait_until_all_idle(running_pool)
+    killed_instance = running_pool.instances[0]
+    killed_process = killed_instance.unoserver_process
+
+    os.kill(killed_process.process_id, signal.SIGKILL)
+    deadline = time.monotonic() + LIBREOFFICE_START_SECONDS
+    while killed_instance.unoserver_process in (None, killed_process) or killed_instance.state is not InstanceState.IDLE:
+        assert time.monotonic() < deadline, f"the instance is {killed_instance.state}, not restarted"
+        time.sleep(0.5)
+
+    assert process_names_in_group(killed_process.process_id) == []
+    assert "soffice.bin" in process_names_in_group(killed_instance.unoserver_process.process_id)

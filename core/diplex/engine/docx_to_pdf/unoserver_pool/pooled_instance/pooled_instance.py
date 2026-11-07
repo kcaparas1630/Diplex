@@ -1,4 +1,4 @@
-"""One instance of the unoserver pool: its state, and the keeper thread that starts, recycles and kills it (ADR 011).
+"""One instance of the unoserver pool: its state, and the keeper thread that starts, supervises, recycles and kills it.
 
 The pool and every keeper share one condition: each reads or changes an instance's state only while holding it, and
 notifies it after a change, so a conversion waiting for an idle instance wakes up when one becomes free.
@@ -16,6 +16,9 @@ from .unoserver_process import InstancePorts, UnoserverProcess, start_unoserver_
 instance_logger = logging.getLogger("diplex.unoserver_pool")
 READY_CHECK_INTERVAL_SECONDS = 0.25
 READY_CHECK_TIMEOUT_SECONDS = 5.0  # one info call; LibreOffice answers in milliseconds once up
+EXIT_CHECK_INTERVAL_SECONDS = 0.5  # how often a keeper checks that its idle unoserver is still running
+FIRST_RESTART_DELAY_SECONDS = 1.0  # after a failed start; doubles after each further failure
+MAX_RESTART_DELAY_SECONDS = 30.0
 
 
 class InstanceState(Enum):
@@ -25,7 +28,7 @@ class InstanceState(Enum):
     IDLE = "idle"  # answering, and free for a conversion
     BUSY = "busy"  # converting one document
     RECYCLING = "recycling"  # being killed, with its whole process group, and started afresh
-    DOWN = "down"  # not running: it failed to start, or exited
+    DOWN = "down"  # not running: it failed to start, and its keeper will try again
     STOPPED = "stopped"  # the pool is shutting down
 
 
@@ -84,6 +87,9 @@ class PooledInstance:
         """Mark an idle instance busy and return True, or return False; call it while holding the pool's condition."""
         if self._state is not InstanceState.IDLE:
             return False
+        if self._unoserver_process is None or self._unoserver_process.has_exited():
+            self._recycle("its unoserver exited")  # caught before a conversion was sent to it
+            return False
         self._state = InstanceState.BUSY
         return True
 
@@ -109,18 +115,36 @@ class PooledInstance:
         self._set_state(InstanceState.RECYCLING)
 
     def _keep_running(self) -> None:
-        """Start the instance and keep it, recycling it whenever asked, until the pool stops; then kill it."""
-        while True:
-            self._start_and_wait_until_ready()
-            with self._condition:
-                self._condition.wait_for(lambda: self._stopping or self._state is InstanceState.RECYCLING)
-                if self._stopping:
-                    self._set_state(InstanceState.STOPPED)
+        """Keep the instance running until the pool stops: restart it when it exits or fails to start, recycle it when asked."""
+        restart_delay_seconds = FIRST_RESTART_DELAY_SECONDS
+        while not self._stopping:
+            if self._start_and_wait_until_ready():
+                restart_delay_seconds = FIRST_RESTART_DELAY_SECONDS
+                recycle_reason = self._watch_until_recycled()
+                if recycle_reason is None:
                     break
-                recycle_reason = self._recycle_reason
-            instance_logger.warning("recycling unoserver instance %d: %s", self.instance_index, recycle_reason)
-            self._kill_unoserver()  # the whole process group, so no soffice.bin keeps the UNO port
+                instance_logger.warning("recycling unoserver instance %d: %s", self.instance_index, recycle_reason)
+                self._kill_unoserver()  # the whole process group, so no soffice.bin keeps the UNO port
+                continue
+            with self._condition:
+                if self._condition.wait_for(lambda: self._stopping, timeout=restart_delay_seconds):
+                    break
+            instance_logger.warning("restarting unoserver instance %d after %g s", self.instance_index, restart_delay_seconds)
+            restart_delay_seconds = min(restart_delay_seconds * 2, MAX_RESTART_DELAY_SECONDS)
+        self._set_state(InstanceState.STOPPED)
         self._kill_unoserver()
+
+    def _watch_until_recycled(self) -> str | None:
+        """Wait while the instance works, recycling it if its unoserver exits while idle; return why, or None on stop."""
+        with self._condition:
+            while not self._stopping:
+                if self._state is InstanceState.RECYCLING:
+                    return self._recycle_reason
+                if self._state is InstanceState.IDLE and self._unoserver_process.has_exited():
+                    self._recycle("its unoserver exited")
+                    continue
+                self._condition.wait(EXIT_CHECK_INTERVAL_SECONDS)
+        return None
 
     def _start_and_wait_until_ready(self) -> bool:
         """Start unoserver and mark the instance idle once it answers; mark it down and return False if it never does."""
