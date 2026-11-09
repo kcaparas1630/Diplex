@@ -1,6 +1,6 @@
 # ADR 004: LibreOffice Runs Through a unoserver Pool
 
-> Status: **Accepted** · 2026-10-30
+> Status: **Accepted** · 2026-10-30 · Refined by [ADR 011](011-unoserver-pool-dispatcher.md): the engine, not unoserver's flags, recycles, times out and supervises the instances
 
 ## Context
 
