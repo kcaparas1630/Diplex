@@ -6,7 +6,13 @@ from .unoserver_client import (
     UnoserverUnavailableError,
     convert_docx_to_pdf,
 )
-from .unoserver_pool import FIRST_UNOSERVER_PORT, UnoserverPool, UnoserverPoolSettings, unoserver_pool_logger
+from .unoserver_pool import (
+    FIRST_UNOSERVER_PORT,
+    UnoserverPool,
+    UnoserverPoolSettings,
+    count_available_cpus,
+    unoserver_pool_logger,
+)
 
 __all__ = [
     "DEFAULT_UNOSERVER_PORT",
@@ -16,5 +22,6 @@ __all__ = [
     "UnoserverPoolSettings",
     "UnoserverUnavailableError",
     "convert_docx_to_pdf",
+    "count_available_cpus",
     "unoserver_pool_logger",
 ]
