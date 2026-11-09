@@ -81,7 +81,7 @@ consumer app (server)
 ## 7. Open Decisions
 
 - **Upload limits:** maximum pages and file size (now a provisional 50 MiB; the largest sample is 3 MB) for a synchronous render, measured on the engine image without a GPU, and whether the 40 MP page image limit fits that memory. The page limit also bounds the response size, since consumers hold it in memory.
-- **unoserver pool:** pool size, `--stop-after` count, and conversion timeout. Sharing a LibreOffice process between jobs is a deliberate trade against one process per job, which the POC used.
+- **unoserver pool:** pool size, `--stop-after` count, and conversion timeout. Sharing a LibreOffice process between jobs is a deliberate trade against one process per job, which the POC used. The 2026-10-30 benchmark ([ADR 004](004-unoserver-pool.md), laptop numbers to repeat on the hosting target) points to one instance per vCPU (more instances than vCPUs slowed every conversion, 2.04 times at 8 on 4 vCPUs), recycling after about 50 conversions (memory grows from 233 MB idle to about 1.0 GB after 50 and 1.65 GB after 303, never reclaimed), and a timeout above the slowest successful conversion, 75 s (median 0.15 s, p95 2.3 s, p99 about 44 s; one document takes 189 s). A timed-out instance must be killed with its LibreOffice: it keeps failing requests, and `soffice.bin` outlives unoserver and holds the UNO port.
 - **Word fidelity:** compare the DOCX samples rendered by Diplex against Word before making any fidelity claim.
 - **Page image resolution:** one size, or a thumbnail plus a full size.
 - **Playground stack:** web framework, local database, and TypeScript tooling (package manager, test runner).
