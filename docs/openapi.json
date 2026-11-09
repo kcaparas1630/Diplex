@@ -113,7 +113,7 @@
             }
           },
           "503": {
-            "description": "converter_unavailable: unoserver is not answering; try again later.",
+            "description": "converter_unavailable: unoserver is not answering, or converter_busy: every unoserver instance stayed busy for DIPLEX_CONVERTER_WAIT_SECONDS. Try again later.",
             "content": {
               "application/json": {
                 "schema": {
@@ -217,6 +217,7 @@
           "page_too_large",
           "docx_conversion_failed",
           "converter_unavailable",
+          "converter_busy",
           "internal_error"
         ],
         "title": "RenderErrorCode",

@@ -1,6 +1,7 @@
 """Tests POST /render through the engine app, reading responses as a multipart/form-data client would."""
 
 import io
+import zipfile
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
@@ -12,11 +13,16 @@ from PIL import Image
 from diplex.api import create_app, render_route
 from diplex.api.upload_limit_setting import MAX_UPLOAD_BYTES_VARIABLE
 from diplex.definition import RenderError, RenderErrorCode, RenderManifest
-from diplex.engine import DocxConversionError, PageTooLargeError, UnoserverUnavailableError
+from diplex.engine import ConverterBusyError, DocxConversionError, PageTooLargeError, UnoserverUnavailableError
 from diplex.engine.pages import read_page_sizes
 from stand_in_unoserver_pool import StandInUnoserverPool
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
+WORD_CONTENT_TYPES = (
+    '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+    '<Override PartName="/word/document.xml" '
+    'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'
+)
 
 
 def _sample_bytes(sample_name: str) -> bytes:
@@ -31,6 +37,14 @@ def _post_render(document_bytes: bytes, file_name: str = "upload.pdf", content_t
     """Send the bytes to /render as the document part of a multipart/form-data upload, converting a DOCX with docx_conversion."""
     with TestClient(create_app(unoserver_pool=StandInUnoserverPool(docx_conversion))) as client:
         return client.post("/render", files={"document": (file_name, document_bytes, content_type)})
+
+
+def _word_package() -> bytes:
+    """A zip that the type check takes for a DOCX: just a [Content_Types].xml naming a Word document part."""
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as package:
+        package.writestr("[Content_Types].xml", WORD_CONTENT_TYPES)
+    return zip_buffer.getvalue()
 
 
 def _response_parts(response) -> list:
@@ -149,6 +163,21 @@ def test_a_docx_libreoffice_cannot_load_gets_422_with_a_plain_message():
         code=RenderErrorCode.DOCX_CONVERSION_FAILED, message="LibreOffice could not load or convert the DOCX"
     )
     assert b"RuntimeError" not in response.content
+
+
+def test_a_docx_gets_503_converter_busy_when_every_instance_stays_busy():
+    """If every unoserver instance stays busy for the whole wait, the upload gets 503 converter_busy, to retry later."""
+
+    def busy_pool(docx_bytes):
+        """Fail as the pool does when no instance became idle in time."""
+        raise ConverterBusyError("all 4 unoserver instances stayed busy for 30 seconds")
+
+    response = _post_render(_word_package(), file_name="report.docx", docx_conversion=busy_pool)
+
+    assert response.status_code == 503
+    assert _error(response) == RenderError(
+        code=RenderErrorCode.CONVERTER_BUSY, message="all 4 unoserver instances stayed busy for 30 seconds"
+    )
 
 
 def test_a_pdf_pdfium_cannot_read_gets_422():

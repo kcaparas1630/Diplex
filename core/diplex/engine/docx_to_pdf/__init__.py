@@ -8,6 +8,8 @@ from .unoserver_client import (
 )
 from .unoserver_pool import (
     FIRST_UNOSERVER_PORT,
+    ConverterBusyError,
+    InstanceState,
     UnoserverPool,
     UnoserverPoolSettings,
     count_available_cpus,
@@ -17,7 +19,9 @@ from .unoserver_pool import (
 __all__ = [
     "DEFAULT_UNOSERVER_PORT",
     "FIRST_UNOSERVER_PORT",
+    "ConverterBusyError",
     "DocxConversionError",
+    "InstanceState",
     "UnoserverPool",
     "UnoserverPoolSettings",
     "UnoserverUnavailableError",

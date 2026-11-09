@@ -5,12 +5,15 @@ import os
 from diplex.engine import UnoserverPoolSettings, count_available_cpus
 
 INSTANCE_COUNT_VARIABLE = "DIPLEX_UNOSERVER_INSTANCES"  # by default one per vCPU: more slowed every conversion (ADR 004)
+WAIT_SECONDS_VARIABLE = "DIPLEX_CONVERTER_WAIT_SECONDS"  # how long a DOCX waits for an idle instance; 0 is no wait
+DEFAULT_WAIT_SECONDS = 30
 
 
 def read_unoserver_pool_settings() -> UnoserverPoolSettings:
     """Return the pool settings from the environment, with the defaults for variables that are not set."""
     return UnoserverPoolSettings(
         instance_count=_read_whole_number(INSTANCE_COUNT_VARIABLE, count_available_cpus(), minimum=1),
+        wait_seconds=_read_whole_number(WAIT_SECONDS_VARIABLE, DEFAULT_WAIT_SECONDS, minimum=0),
     )
 
 
