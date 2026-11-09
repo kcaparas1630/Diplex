@@ -41,16 +41,17 @@ python -m scripts.smoke_render http://127.0.0.1:8000   # renders every sample th
 python -m pytest scripts/smoke_render/tests    # smoke test script tests
 
 docker build -t diplex-core .                  # builds the engine image from the root Dockerfile
-bash scripts/start-unoserver.sh                # builds the engine image and runs unoserver for the engine tests; Ctrl+C stops it
-docker run --rm -p 127.0.0.1:8000:8000 diplex-core   # runs the engine API on 127.0.0.1:8000 with unoserver inside; -e DIPLEX_MAX_UPLOAD_BYTES=... sets the limit
+bash scripts/start-unoserver.sh                # builds the engine image and runs one unoserver on 127.0.0.1:2003 for the engine tests; Ctrl+C stops it
+docker run --rm -p 127.0.0.1:8000:8000 diplex-core   # runs the engine API on 127.0.0.1:8000; it starts its unoserver pool inside; -e DIPLEX_MAX_UPLOAD_BYTES=... and -e DIPLEX_UNOSERVER_INSTANCES=... set the upload limit and pool size
 cd core && DIPLEX_ENGINE_URL=http://127.0.0.1:8000 uv run pytest tests/test_engine_container.py   # tests that running container
 cd core && uv sync                             # engine package and its test tools
-cd core && uv run pytest                       # engine tests; the unoserver and container tests skip unless those run, the entrypoint tests off Linux
+cd core && uv run pytest                       # engine tests; the unoserver, LibreOffice pool and container tests skip unless those run, the entrypoint tests off Linux
+cd core && PATH=~/.venvs/unoserver/bin:$PATH uv run pytest tests/test_unoserver_pool_with_libreoffice.py   # the pool with real LibreOffice (Linux)
 cd core && uv run uvicorn diplex.api:app       # serves the engine API on 127.0.0.1:8000 (GET /health, POST /render)
 cd core && uv run python -m diplex.openapi_export ../docs/openapi.json   # rewrites the published OpenAPI spec after a contract change
 ```
 
-The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). Add the playground commands here once it exists.
+The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). The LibreOffice pool tests need LibreOffice, `python3-uno` and unoserver on PATH: `python3 -m venv --system-site-packages ~/.venvs/unoserver && ~/.venvs/unoserver/bin/pip install unoserver==3.7`. Add the playground commands here once it exists.
 
 ## Working Agreements
 

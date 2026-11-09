@@ -1,5 +1,5 @@
 # Builds the diplex-core engine image: the engine API from core/, and LibreOffice, unoserver and the fonts from ADR 005.
-# The container runs the API and a single unoserver on localhost; the supervised pool (ADR 004) comes later.
+# The container runs the engine API, which starts its own pool of unoserver instances on localhost (ADR 011).
 
 FROM debian:trixie-slim
 

@@ -72,7 +72,7 @@ def test_the_lock_is_let_go_when_rendering_fails(monkeypatch):
     assert not PDFIUM_LOCK.locked()
 
 
-def test_a_docx_is_rendered_from_the_pdf_it_became(monkeypatch):
+def test_a_docx_is_rendered_from_the_pdf_it_became():
     """render_docx renders unoserver's PDF and keeps it, so the images and the PDF match page for page."""
     converted_pdf = _sample_bytes("irs-form-1040-2025.pdf")  # stands in for unoserver's output
     lock_held_while_converting = []
@@ -82,9 +82,7 @@ def test_a_docx_is_rendered_from_the_pdf_it_became(monkeypatch):
         lock_held_while_converting.append(PDFIUM_LOCK.locked())
         return converted_pdf
 
-    monkeypatch.setattr(document_render, "convert_docx_to_pdf", fake_convert_docx_to_pdf)
-
-    rendered_document = render_docx(b"PK stand-in DOCX")
+    rendered_document = render_docx(b"PK stand-in DOCX", fake_convert_docx_to_pdf)
 
     assert rendered_document.converted_pdf == converted_pdf
     assert rendered_document.page_sizes == render_pdf(converted_pdf).page_sizes
