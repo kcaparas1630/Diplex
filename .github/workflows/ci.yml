@@ -18,6 +18,7 @@ jobs:
   conventions:
     name: Convention checker
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -28,6 +29,7 @@ jobs:
   engine-tests:
     name: Engine and script tests
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
@@ -45,6 +47,7 @@ jobs:
   engine-image:
     name: Engine image
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
@@ -73,7 +76,7 @@ jobs:
         run: |
           docker run --rm --user root -v "$PWD:/repo" -w /repo/core \
             -e UV_PROJECT_ENVIRONMENT=/tmp/test-venv -e UV_PYTHON_DOWNLOADS=never diplex-core:ci \
-            sh -c "uv sync --locked --python /usr/bin/python3 && uv run pytest tests/test_unoserver_pool_with_libreoffice.py -rs"
+            sh -c "uv sync --locked --python /usr/bin/python3 && uv run pytest -p no:cacheprovider tests/test_unoserver_pool_with_libreoffice.py -rs"
       - name: Container tests over HTTP
         working-directory: core
         run: |
@@ -85,3 +88,16 @@ jobs:
           docker stop diplex-engine
           test $(( $(date +%s) - started )) -lt 10
           docker logs diplex-engine 2>&1 | tail -5
+      - name: With no egress, the engine can't reach out but its consumers reach it (ADR 013)
+        run: |
+          docker network create --internal diplex-no-egress
+          docker run -d --name diplex-isolated --network diplex-no-egress diplex-core:ci
+          sleep 3
+          # From inside the engine, any outbound connection must fail.
+          if docker exec diplex-isolated python3 -c "import socket; socket.create_connection(('1.1.1.1', 443), timeout=3)"; then
+            echo "the engine reached the internet" && exit 1
+          fi
+          # A container on the same internal network, like the consumer's app, reaches /health.
+          docker run --rm --network diplex-no-egress diplex-core:ci \
+            python3 -c "import urllib.request; assert urllib.request.urlopen('http://diplex-isolated:8000/health', timeout=10).status == 200"
+          docker stop diplex-isolated

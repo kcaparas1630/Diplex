@@ -14,6 +14,11 @@
 - [010 Render response format](adr/010-render-response-format.md)
 - [011 unoserver pool dispatcher](adr/011-unoserver-pool-dispatcher.md)
 - [012 API key and version](adr/012-api-key-and-version.md)
+- [013 No network for LibreOffice](adr/013-no-network-for-libreoffice.md)
+
+## [Self-Hosting](self-hosting.md)
+
+- [self-hosting.md](self-hosting.md): running the engine image, its settings, and the network it must have
 
 ## [OpenAPI Spec](openapi.json)
 

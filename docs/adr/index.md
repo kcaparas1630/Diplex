@@ -16,3 +16,4 @@ Each record captures one decision: the context, what was decided, and what follo
 | [010](010-render-response-format.md) | The render response is multipart/form-data | Accepted | 2026-11-03 |
 | [011](011-unoserver-pool-dispatcher.md) | The engine runs, dispatches and recycles the unoserver pool | Accepted | 2026-11-07 |
 | [012](012-api-key-and-version.md) | An optional Bearer key and a required API version header | Accepted | 2026-11-10 |
+| [013](013-no-network-for-libreoffice.md) | LibreOffice has no network because the engine's container has none | Accepted | 2026-11-10 |

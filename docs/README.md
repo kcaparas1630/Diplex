@@ -6,6 +6,7 @@ This folder holds everything written about Diplex except the code: what it is, w
 
 - **[adr/](adr/index.md): Architecture Decision Records.** What the system is and why. Start with [ADR 001](adr/001-architecture.md), the living description of the current architecture; the others each record one decision.
 - **[code-convention/](code-convention/index.md): rules for working in the repository.** Layout, boundaries, untrusted input, licensing, testing and doc style.
+- **[self-hosting.md](self-hosting.md): running the engine image.** Its settings, and the network operators must keep in place.
 - **[openapi.json](openapi.json): the engine's API contract.** Generated from the models in `core/diplex/definition/`; consumers code against it.
 
 ## How to Read Them
