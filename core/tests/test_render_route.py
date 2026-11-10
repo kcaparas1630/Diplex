@@ -46,11 +46,13 @@ def _post_render(document_bytes: bytes, file_name: str = "upload.pdf", content_t
         return client.post("/render", files={"document": (file_name, document_bytes, content_type)})
 
 
-def _word_package() -> bytes:
-    """A zip that the type check takes for a DOCX: just a [Content_Types].xml naming a Word document part."""
+def _word_package(extra_part: str | None = None) -> bytes:
+    """A zip that the type check takes for a DOCX: a [Content_Types].xml naming a Word document part, and any extra part."""
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as package:
         package.writestr("[Content_Types].xml", WORD_CONTENT_TYPES)
+        if extra_part is not None:
+            package.writestr(extra_part, b"stand-in part")
     return zip_buffer.getvalue()
 
 
@@ -201,6 +203,19 @@ def test_a_docx_that_times_out_gets_422_saying_so():
         code=RenderErrorCode.DOCX_CONVERSION_FAILED,
         message="LibreOffice did not finish converting the DOCX within 120 seconds",
     )
+
+
+def test_a_docx_with_macros_gets_422_without_being_converted():
+    """A DOCX carrying a VBA project gets 422 macros_not_allowed, and LibreOffice never sees it."""
+    converted_documents = []
+
+    response = _post_render(
+        _word_package(extra_part="word/vbaProject.bin"), file_name="budget.docx", docx_conversion=converted_documents.append
+    )
+
+    assert response.status_code == 422
+    assert _error(response).code is RenderErrorCode.MACROS_NOT_ALLOWED
+    assert converted_documents == []
 
 
 def test_a_pdf_pdfium_cannot_read_gets_422():
