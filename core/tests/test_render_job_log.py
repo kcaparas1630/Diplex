@@ -107,7 +107,7 @@ def test_a_failure_logs_its_type_and_stack_but_not_its_message(caplog, monkeypat
     """An unexpected error whose message quotes the document is logged without that message, and answered with 500."""
     caplog.set_level(logging.DEBUG)
 
-    def fail_quoting_the_document(pdf_bytes):
+    def fail_quoting_the_document(pdf_bytes, max_pages):
         """Fail with a message that quotes the document, as a library error might."""
         raise ValueError(f"could not parse {pdf_bytes[:60]!r}")
 

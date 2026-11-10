@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from diplex.api import create_app, render_route
+from diplex.api.page_limit_setting import MAX_PAGES_VARIABLE
 from diplex.api.upload_limit_setting import MAX_UPLOAD_BYTES_VARIABLE
 from diplex.definition import API_VERSION_HEADER, CURRENT_API_VERSION, RenderError, RenderErrorCode, RenderManifest
 from diplex.engine import (
@@ -18,6 +19,7 @@ from diplex.engine import (
     DocxConversionError,
     DocxConversionTimeoutError,
     PageTooLargeError,
+    TooManyPagesError,
     UnoserverUnavailableError,
 )
 from diplex.engine.pages import read_page_sizes
@@ -230,6 +232,24 @@ def test_a_zip_bomb_docx_gets_422_without_being_converted():
     assert converted_documents == []
 
 
+def test_a_document_over_the_page_limit_gets_422(monkeypatch):
+    """A PDF with more pages than DIPLEX_MAX_PAGES gets 422 too_many_pages, saying how many it has."""
+
+    def refuse_three_pages(pdf_bytes, max_pages):
+        """Fail as render_pdf does on a PDF over the page limit."""
+        raise TooManyPagesError(f"the document has 3 pages, over the limit of {max_pages}")
+
+    monkeypatch.setenv(MAX_PAGES_VARIABLE, "2")
+    monkeypatch.setattr(render_route, "render_pdf", refuse_three_pages)
+
+    response = _post_render(b"%PDF-1.7 stand-in")
+
+    assert response.status_code == 422
+    assert _error(response) == RenderError(
+        code=RenderErrorCode.TOO_MANY_PAGES, message="the document has 3 pages, over the limit of 2"
+    )
+
+
 def test_a_pdf_pdfium_cannot_read_gets_422():
     """Bytes that start like a PDF but aren't one get 422 and unreadable_pdf."""
     response = _post_render(b"%PDF-1.7\nnot really a PDF\n")
@@ -241,7 +261,7 @@ def test_a_pdf_pdfium_cannot_read_gets_422():
 def test_a_page_too_large_gets_422_with_its_page_number(monkeypatch):
     """A page over the pixel limits gets 422 and page_too_large, and the message says which page."""
 
-    def refuse_page_two(pdf_bytes):
+    def refuse_page_two(pdf_bytes, max_pages):
         """Fail as render_pdf does on a page too large to render."""
         raise PageTooLargeError("page 2 would render at 28800 x 28800 pixels, over the limit of 40,000,000")
 

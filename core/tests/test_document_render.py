@@ -32,7 +32,7 @@ def _stand_in_docx() -> bytes:
 
 def test_a_real_pdf_gives_a_size_and_an_image_per_page():
     """The IRS form gives two US Letter page sizes and two WebP images of 1224 x 1584 px."""
-    rendered_document = render_pdf(_sample_bytes("irs-form-1040-2025.pdf"))
+    rendered_document = render_pdf(_sample_bytes("irs-form-1040-2025.pdf"), max_pages=500)
 
     assert [(page.index, page.width, page.height) for page in rendered_document.page_sizes] == [
         (1, 612.0, 792.0),
@@ -62,7 +62,7 @@ def test_pdfium_is_only_used_while_holding_the_lock(monkeypatch):
     monkeypatch.setattr(document_render, "read_page_sizes", fake_read_page_sizes)
     monkeypatch.setattr(document_render, "render_page_images", fake_render_page_images)
 
-    render_pdf(b"%PDF-1.7 stand-in")
+    render_pdf(b"%PDF-1.7 stand-in", max_pages=500)
 
     assert lock_held_during == [("sizes", True), ("page", True), ("page", True)]
     assert not PDFIUM_LOCK.locked()
@@ -78,7 +78,7 @@ def test_the_lock_is_let_go_when_rendering_fails(monkeypatch):
     monkeypatch.setattr(document_render, "read_page_sizes", failing_read_page_sizes)
 
     with pytest.raises(RuntimeError):
-        render_pdf(b"%PDF-1.7 stand-in")
+        render_pdf(b"%PDF-1.7 stand-in", max_pages=500)
     assert not PDFIUM_LOCK.locked()
 
 
@@ -92,14 +92,14 @@ def test_a_docx_is_rendered_from_the_pdf_it_became():
         lock_held_while_converting.append(PDFIUM_LOCK.locked())
         return converted_pdf
 
-    rendered_document = render_docx(_stand_in_docx(), fake_convert_docx_to_pdf)
+    rendered_document = render_docx(_stand_in_docx(), fake_convert_docx_to_pdf, max_pages=500)
 
     assert rendered_document.converted_pdf == converted_pdf
-    assert rendered_document.page_sizes == render_pdf(converted_pdf).page_sizes
+    assert rendered_document.page_sizes == render_pdf(converted_pdf, max_pages=500).page_sizes
     assert len(rendered_document.page_webps) == 2
     assert lock_held_while_converting == [False]  # PDF uploads keep rendering while LibreOffice works
 
 
 def test_a_pdf_upload_has_no_converted_pdf():
     """A PDF upload gets no PDF back (ADR 010)."""
-    assert render_pdf(_sample_bytes("irs-form-1040-2025.pdf")).converted_pdf is None
+    assert render_pdf(_sample_bytes("irs-form-1040-2025.pdf"), max_pages=500).converted_pdf is None

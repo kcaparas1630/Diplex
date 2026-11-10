@@ -22,6 +22,7 @@ def test_codes_are_the_ones_consumers_branch_on():
         "unsupported_document_type",
         "unreadable_pdf",
         "page_too_large",
+        "too_many_pages",
         "docx_limits_exceeded",
         "macros_not_allowed",
         "docx_conversion_failed",

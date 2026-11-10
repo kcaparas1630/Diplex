@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
+from starlette.datastructures import State
 from starlette.status import (
     HTTP_415_UNSUPPORTED_MEDIA_TYPE,
     HTTP_422_UNPROCESSABLE_CONTENT,
@@ -30,6 +31,7 @@ from diplex.engine import (
     MacroEnabledDocumentError,
     PageTooLargeError,
     RenderedDocument,
+    TooManyPagesError,
     UnoserverPool,
     UnoserverUnavailableError,
     UnreadablePdfError,
@@ -51,6 +53,7 @@ ERROR_RESPONSES = {
     UnsupportedDocumentError: (HTTP_415_UNSUPPORTED_MEDIA_TYPE, RenderErrorCode.UNSUPPORTED_DOCUMENT_TYPE),
     UnreadablePdfError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.UNREADABLE_PDF),
     PageTooLargeError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.PAGE_TOO_LARGE),
+    TooManyPagesError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.TOO_MANY_PAGES),
     MacroEnabledDocumentError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.MACROS_NOT_ALLOWED),
     DocxLimitsExceededError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_LIMITS_EXCEEDED),
     DamagedDocxError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_CONVERSION_FAILED),
@@ -72,8 +75,8 @@ RESPONSES_IN_SPEC = {
     415: {"model": RenderError, "description": "unsupported_document_type: not a PDF or a DOCX."},
     422: {
         "model": RenderError,
-        "description": "invalid_request, unreadable_pdf, page_too_large, docx_limits_exceeded, macros_not_allowed or "
-        "docx_conversion_failed.",
+        "description": "invalid_request, unreadable_pdf, page_too_large, too_many_pages, docx_limits_exceeded, "
+        "macros_not_allowed or docx_conversion_failed.",
     },
     500: {"model": RenderError, "description": "internal_error: the message names the job in the engine's log."},
     503: {
@@ -103,7 +106,7 @@ def render_upload(document: Annotated[UploadFile, File(description="The DOCX or 
     document_bytes = document.file.read()  # the upload size limit has already capped it
     with logged_render_job(len(document_bytes)) as render_job:
         try:
-            response_body, content_type = _render(document_bytes, render_job, request.app.state.unoserver_pool)
+            response_body, content_type = _render(document_bytes, render_job, request.app.state)
         except tuple(ERROR_RESPONSES) as error:
             status_code, error_code = ERROR_RESPONSES[type(error)]
             message = FIXED_MESSAGES.get(type(error), str(error))  # engine messages hold no document contents
@@ -116,14 +119,15 @@ def render_upload(document: Annotated[UploadFile, File(description="The DOCX or 
     return Response(content=response_body, media_type=content_type)
 
 
-def _render(document_bytes: bytes, render_job: RenderJob, unoserver_pool: UnoserverPool) -> tuple[bytes, str]:
-    """Render the upload into the response body and its content type, converting a DOCX with the pool."""
+def _render(document_bytes: bytes, render_job: RenderJob, app_state: State) -> tuple[bytes, str]:
+    """Render the upload into the response body and its content type, with the app's pool and page limit."""
     document_type = detect_document_type(document_bytes)
     render_job.source_type = document_type.value
     if document_type is DocumentType.DOCX:
-        rendered_document = render_docx(document_bytes, unoserver_pool.convert_docx_to_pdf)
+        unoserver_pool: UnoserverPool = app_state.unoserver_pool
+        rendered_document = render_docx(document_bytes, unoserver_pool.convert_docx_to_pdf, max_pages=app_state.max_pages)
     else:
-        rendered_document = render_pdf(document_bytes)
+        rendered_document = render_pdf(document_bytes, max_pages=app_state.max_pages)
     render_job.page_count = len(rendered_document.page_sizes)
     return encode_form_data(_response_parts(rendered_document))
 
