@@ -39,6 +39,7 @@ class PooledInstance:
         scratch_folder: Path,
         unoserver_command: tuple[str, ...],
         ready_timeout_seconds: float,
+        conversions_before_recycle: int,
         pool_condition: threading.Condition,
     ) -> None:
         """Hold what the instance needs to start; nothing runs until start_keeper()."""
@@ -47,7 +48,9 @@ class PooledInstance:
         self._scratch_folder = scratch_folder
         self._unoserver_command = unoserver_command
         self._ready_timeout_seconds = ready_timeout_seconds
+        self._conversions_before_recycle = conversions_before_recycle
         self._condition = pool_condition
+        self._conversion_count = 0  # successful conversions since this unoserver started
         self._state = InstanceState.STARTING
         self._stopping = False
         self._recycle_reason = ""
@@ -94,7 +97,11 @@ class PooledInstance:
             # A failed or timed-out LibreOffice may keep failing, or carry what the document did, into the next job.
             self._recycle(f"its conversion failed with {type(conversion_failure).__name__}")
         else:
-            self._set_state(InstanceState.IDLE)
+            self._conversion_count += 1
+            if self._conversion_count >= self._conversions_before_recycle:
+                self._recycle(f"it converted {self._conversion_count} documents")  # LibreOffice never gives memory back
+            else:
+                self._set_state(InstanceState.IDLE)
 
     def _recycle(self, reason: str) -> None:
         """Hand the instance to its keeper to kill and start afresh, before it takes another job; call it holding the condition."""
@@ -126,6 +133,7 @@ class PooledInstance:
             return False
         with self._condition:
             self._unoserver_process = unoserver_process
+            self._conversion_count = 0
             self._set_state(InstanceState.STARTING)
         deadline = started + self._ready_timeout_seconds
         while not unoserver_answers(self.ports.xmlrpc_port, READY_CHECK_TIMEOUT_SECONDS):
