@@ -19,3 +19,4 @@ Each record captures one decision: the context, what was decided, and what follo
 | [013](013-no-network-for-libreoffice.md) | LibreOffice has no network because the engine's container has none | Accepted | 2026-11-10 |
 | [014](014-isolation-review.md) | The shared-LibreOffice isolation trade, reviewed | Accepted | 2026-11-10 |
 | [015](015-one-page-image-size.md) | Page images come in one size | Accepted | 2026-11-10 |
+| [016](016-playground-stack.md) | The playground is Next.js with Postgres and RustFS | Accepted | 2026-11-10 |
