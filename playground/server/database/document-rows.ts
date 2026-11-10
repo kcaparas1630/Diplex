@@ -38,6 +38,16 @@ export async function insertDocumentRow(database: SqlQueries, newRow: NewDocumen
   return toDocumentRow(inserted.rows[0]);
 }
 
+/** The owner's documents that aren't deleted, newest first. */
+export async function listDocumentRows(database: SqlQueries, ownerId: string): Promise<DocumentRow[]> {
+  const listed = await database.query(
+    `SELECT id, owner_id, file_name, folder, source_type, page_sizes, created_at, deleted_at
+     FROM documents WHERE owner_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
+    [ownerId],
+  );
+  return listed.rows.map(toDocumentRow);
+}
+
 /** Turn a database row's columns into a DocumentRow. */
 export function toDocumentRow(columns: Record<string, unknown>): DocumentRow {
   return {
