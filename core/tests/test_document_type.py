@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 from diplex.engine.checks import DocumentType, UnsupportedDocumentError, detect_document_type
-from diplex.engine.checks.document_type import MAX_CONTENT_TYPES_BYTES
+from diplex.engine.checks.docx_package import MAX_CONTENT_TYPES_BYTES
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
 CONTENT_TYPES_START = '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
