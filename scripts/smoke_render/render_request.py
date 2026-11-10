@@ -15,6 +15,7 @@ from pathlib import Path
 
 UNOSERVER_START_SECONDS = 60  # a DOCX waits for LibreOffice to start but can still get 503; keep asking for this long
 REQUEST_TIMEOUT_SECONDS = 600
+API_VERSION = "1"  # the engine API version these scripts code against (ADR 012)
 
 
 @dataclass(frozen=True)
@@ -64,14 +65,14 @@ def render_sample(engine_url: str, sample_path: Path) -> SampleResult:
 
 
 def post_document(engine_url: str, document_bytes: bytes) -> tuple[int, str, bytes]:
-    """POST the bytes as the document part of an upload, with DIPLEX_API_KEY if set; return status, content type and body."""
+    """POST the bytes as an upload, with the API version and DIPLEX_API_KEY if set; return status, content type and body."""
     boundary = uuid.uuid4().hex
     request_body = (
         f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="upload"\r\n\r\n'.encode()
         + document_bytes
         + f"\r\n--{boundary}--\r\n".encode()
     )
-    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
+    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}", "Diplex-Api-Version": API_VERSION}
     api_key = os.environ.get("DIPLEX_API_KEY", "").strip()
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"  # the engine's key, when it was started with one (ADR 012)

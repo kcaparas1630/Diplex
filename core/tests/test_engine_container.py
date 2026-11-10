@@ -36,7 +36,7 @@ def _post_render(document_bytes: bytes) -> tuple[int, str, bytes]:
         + document_bytes
         + f"\r\n--{boundary}--\r\n".encode()
     )
-    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
+    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}", "Diplex-Api-Version": "1"}
     if ENGINE_API_KEY:
         headers["Authorization"] = f"Bearer {ENGINE_API_KEY}"
     request = urllib.request.Request(f"{ENGINE_URL}/render", data=body, headers=headers)

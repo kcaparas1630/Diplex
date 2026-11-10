@@ -17,6 +17,7 @@ def test_codes_are_the_ones_consumers_branch_on():
     assert [code.value for code in RenderErrorCode] == [
         "invalid_request",
         "unauthorized",
+        "unsupported_api_version",
         "upload_too_large",
         "unsupported_document_type",
         "unreadable_pdf",

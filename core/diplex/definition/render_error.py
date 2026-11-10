@@ -10,6 +10,7 @@ class RenderErrorCode(StrEnum):
 
     INVALID_REQUEST = "invalid_request"  # 400 or 422: not multipart/form-data with a file part named document
     UNAUTHORIZED = "unauthorized"  # 401: the engine has DIPLEX_API_KEY set and the request didn't send it
+    UNSUPPORTED_API_VERSION = "unsupported_api_version"  # 400: no Diplex-Api-Version header, or one this engine doesn't serve
     UPLOAD_TOO_LARGE = "upload_too_large"  # 413: the request body is over the engine's upload limit
     UNSUPPORTED_DOCUMENT_TYPE = "unsupported_document_type"  # 415: the upload is not a PDF or a DOCX
     UNREADABLE_PDF = "unreadable_pdf"  # 422: the PDF is damaged, encrypted or not really a PDF

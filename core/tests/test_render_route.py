@@ -12,7 +12,7 @@ from PIL import Image
 
 from diplex.api import create_app, render_route
 from diplex.api.upload_limit_setting import MAX_UPLOAD_BYTES_VARIABLE
-from diplex.definition import RenderError, RenderErrorCode, RenderManifest
+from diplex.definition import API_VERSION_HEADER, CURRENT_API_VERSION, RenderError, RenderErrorCode, RenderManifest
 from diplex.engine import (
     ConverterBusyError,
     DocxConversionError,
@@ -29,6 +29,7 @@ WORD_CONTENT_TYPES = (
     '<Override PartName="/word/document.xml" '
     'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'
 )
+VERSION_HEADERS = {API_VERSION_HEADER: CURRENT_API_VERSION}  # every /render request sends it (ADR 012)
 
 
 def _sample_bytes(sample_name: str) -> bytes:
@@ -41,7 +42,7 @@ def _sample_bytes(sample_name: str) -> bytes:
 
 def _post_render(document_bytes: bytes, file_name: str = "upload.pdf", content_type: str = "application/pdf", docx_conversion=None):
     """Send the bytes to /render as the document part of a multipart/form-data upload, converting a DOCX with docx_conversion."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(docx_conversion))) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(docx_conversion)), headers=VERSION_HEADERS) as client:
         return client.post("/render", files={"document": (file_name, document_bytes, content_type)})
 
 
@@ -228,7 +229,7 @@ def test_a_page_too_large_gets_422_with_its_page_number(monkeypatch):
 
 def test_a_request_without_the_document_part_gets_422_invalid_request():
     """A form without a document part gets 422 invalid_request, not FastAPI's answer that quotes what was sent."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         response = client.post("/render", data={"wrong_name": "Text from the document"})
 
     assert response.status_code == 422
@@ -238,7 +239,7 @@ def test_a_request_without_the_document_part_gets_422_invalid_request():
 
 def test_a_body_that_is_not_multipart_gets_400_invalid_request():
     """A multipart content type over a body FastAPI can't parse gets 400 invalid_request."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         response = client.post(
             "/render", content=b"not multipart at all", headers={"content-type": "multipart/form-data; boundary=missing"}
         )
@@ -249,7 +250,7 @@ def test_a_body_that_is_not_multipart_gets_400_invalid_request():
 
 def test_other_http_errors_keep_fastapis_answer():
     """A route that doesn't exist still gets FastAPI's 404."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         response = client.get("/no-such-route")
 
     assert (response.status_code, response.json()) == (404, {"detail": "Not Found"})
@@ -262,7 +263,7 @@ def test_an_upload_over_the_limit_gets_413_without_rendering(monkeypatch):
     monkeypatch.setattr(render_route, "render_pdf", rendered_uploads.append)
     pdf_bytes = _sample_bytes("irs-form-1040-2025.pdf")  # 220 KB
 
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         whole_response = client.post("/render", files={"document": ("upload.pdf", pdf_bytes, "application/pdf")})
     boundary = "test-boundary"
     multipart_body = (
@@ -271,7 +272,7 @@ def test_an_upload_over_the_limit_gets_413_without_rendering(monkeypatch):
         + f"\r\n--{boundary}--\r\n".encode()
     )
     chunks = (multipart_body[start : start + 8192] for start in range(0, len(multipart_body), 8192))
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         chunked_response = client.post(
             "/render", content=chunks, headers={"content-type": f"multipart/form-data; boundary={boundary}"}
         )

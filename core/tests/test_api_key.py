@@ -5,16 +5,19 @@ from fastapi.testclient import TestClient
 
 from diplex.api import create_app
 from diplex.api.api_key import API_KEY_VARIABLE, read_api_key
-from diplex.definition import RenderErrorCode
+from diplex.definition import API_VERSION_HEADER, CURRENT_API_VERSION, RenderErrorCode
 from stand_in_unoserver_pool import StandInUnoserverPool
 
 ENGINE_KEY = "test-key-0123456789abcdef"
 NOT_A_DOCUMENT = b"plain text, not a document"
 
 
+VERSION_HEADERS = {API_VERSION_HEADER: CURRENT_API_VERSION}  # every /render request sends it (ADR 012)
+
+
 def _post_render(headers: dict[str, str]):
     """Send a non-document to /render with the given headers; a request that gets past the key gets 415."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         return client.post("/render", files={"document": ("upload.txt", NOT_A_DOCUMENT)}, headers=headers)
 
 
@@ -53,7 +56,7 @@ def test_with_a_key_the_right_bearer_token_gets_through(engine_with_key):
 
 def test_health_stays_open_with_a_key(engine_with_key):
     """GET /health needs no key, so container health checks keep working."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         assert client.get("/health").status_code == 200
 
 
