@@ -28,10 +28,12 @@ scripts/
   conventions/                 the convention checker (convention 010)
   smoke_render/                renders every sample through a running engine and reports what happened
   load_test/                   sends every DOCX sample to a running engine, several at once, and reports throughput and latency
+  release_check/               checks a release tag against the versions in the repository (convention 011)
   start-unoserver.sh           builds the engine image and runs one unoserver on port 2003 for the engine tests
   engine-entrypoint.sh         the image's command: runs the engine API, which starts its unoserver pool
 .claude/settings.json          Claude Code project settings: the Stop hook that runs the checker
 .github/workflows/ci.yml       CI on every pull request and on main (convention 005)
+.github/workflows/release.yml  publishes the versioned engine image when a v1.2.3 tag is pushed (convention 011)
 samples/                       real test documents (git-ignored, never committed)
 ```
 

@@ -14,3 +14,4 @@ Rules for working in this repository. They apply to people and coding agents ali
 | [008](008-files-and-folders.md) | Files and folders | one responsibility per file, folder entries, no sibling imports |
 | [009](009-naming.md) | Naming | clear names; no vague or cryptic names |
 | [010](010-convention-checker.md) | The convention checker | running it, the Stop hook, what it checks |
+| [011](011-releases.md) | Releases | image versions, the release steps, security releases |

@@ -38,3 +38,4 @@
 - [008 Files and folders](code-convention/008-files-and-folders.md)
 - [009 Naming](code-convention/009-naming.md)
 - [010 The convention checker](code-convention/010-convention-checker.md)
+- [011 Releases](code-convention/011-releases.md)
