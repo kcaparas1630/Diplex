@@ -6,10 +6,12 @@ import pytest
 from PIL import Image, ImageChops
 
 from diplex.engine.pages import PageWebp, encode_page_webps
+from diplex.engine.pages.page_content import IMAGE_COVERAGE_KEY
 
 US_LETTER_AT_144_DPI = (1224, 1584)
 A4_AT_144_DPI = (1191, 1684)
-LOSSLESS_CHUNK = b"VP8L"  # the image chunk of a lossless WebP; a lossy one has "VP8 "
+LOSSLESS_CHUNK = b"VP8L"  # the image chunk of a lossless WebP
+LOSSY_CHUNK = b"VP8 "  # the image chunk of a lossy WebP
 
 
 def _noisy_image(pixel_size: tuple[int, int]) -> Image.Image:
@@ -81,3 +83,25 @@ def test_closes_each_page_image_once_it_is_encoded():
     with pytest.raises(ValueError, match="closed image"):
         page_images[0].getpixel((0, 0))
     assert page_images[1].getpixel((0, 0)) == (255, 255, 255)
+
+
+@pytest.mark.parametrize(("image_coverage", "expected_chunk"), [(0.0, LOSSLESS_CHUNK), (0.49, LOSSLESS_CHUNK), (0.5, LOSSY_CHUNK), (1.0, LOSSY_CHUNK)])
+def test_pages_mostly_under_images_are_lossy_and_the_rest_lossless(image_coverage, expected_chunk):
+    """A page at least half covered by images is encoded lossy (VP8); text pages stay lossless (VP8L)."""
+    page_image = _noisy_image(US_LETTER_AT_144_DPI)
+    page_image.info[IMAGE_COVERAGE_KEY] = image_coverage
+
+    page_webp = next(encode_page_webps([page_image]))
+
+    assert page_webp.webp_bytes[8:16] == b"WEBP" + expected_chunk
+
+
+def test_a_lossy_photo_page_is_much_smaller_than_lossless():
+    """On a noisy, photo-like page, lossy quality 80 is several times smaller than lossless."""
+    photo_page = _noisy_image(US_LETTER_AT_144_DPI)
+    lossless_webp = next(encode_page_webps([photo_page.copy()]))
+    photo_page.info[IMAGE_COVERAGE_KEY] = 1.0
+
+    lossy_webp = next(encode_page_webps([photo_page]))
+
+    assert len(lossy_webp.webp_bytes) * 3 < len(lossless_webp.webp_bytes)

@@ -1,4 +1,5 @@
-"""Reads a PDF's pages: each page's size in points, and each page as an image at 144 DPI, encoded as lossless WebP."""
+"""Reads a PDF's pages: each page's size in points, and each page as an image at 144 DPI, encoded as WebP
+(lossless for text pages, lossy for scanned or photo-heavy ones; page_content/ tells them apart)."""
 
 from diplex.engine.pdf_loading import UnreadablePdfError
 

@@ -7,6 +7,7 @@ import pytest
 from PIL import Image
 
 from diplex.engine.pages import PageTooLargeError, UnreadablePdfError, render_page_images
+from diplex.engine.pages.page_content import IMAGE_COVERAGE_KEY
 from diplex.engine.pages.page_images import MAX_PAGE_PIXELS, MAX_PAGE_SIDE_PIXELS
 
 STAND_IN_PDF = b"%PDF-1.7\n stand-in bytes"
@@ -36,15 +37,44 @@ class FakeBitmap:
         self._events.append(f"free bitmap {self._page_number}")
 
 
-class FakePage:
-    """Stands in for a pypdfium2 page: records rendering and being closed."""
+class FakeImageObject:
+    """Stands in for a pypdfium2 image object: just its bounds on the page, in points."""
 
-    def __init__(self, events: list[str], page_number: int, page_size: tuple[float, float], failing: bool) -> None:
-        """Hold the shared event log, the page's number and size, and whether rendering should fail."""
+    def __init__(self, bounds: tuple[float, float, float, float]) -> None:
+        """Hold the bounds as (left, bottom, right, top)."""
+        self._bounds = bounds
+
+    def get_bounds(self) -> tuple[float, float, float, float]:
+        """Return the bounds, as pypdfium2 does."""
+        return self._bounds
+
+
+class FakePage:
+    """Stands in for a pypdfium2 page: records rendering and being closed, and lists its image objects."""
+
+    def __init__(
+        self,
+        events: list[str],
+        page_number: int,
+        page_size: tuple[float, float],
+        failing: bool,
+        image_bounds: list[tuple[float, float, float, float]],
+    ) -> None:
+        """Hold the shared event log, the page's number and size, whether rendering fails, and its images' bounds."""
         self._events = events
         self._page_number = page_number
         self._page_size = page_size
         self._failing = failing
+        self._image_bounds = image_bounds
+
+    def get_bbox(self) -> tuple[float, float, float, float]:
+        """Return the page's box from the origin, as (left, bottom, right, top)."""
+        return (0.0, 0.0, *self._page_size)
+
+    def get_objects(self, filter: list[int], max_depth: int) -> list[FakeImageObject]:
+        """Return the page's image objects; the engine only asks for images."""
+        assert filter == [pypdfium2.raw.FPDF_PAGEOBJ_IMAGE]
+        return [FakeImageObject(bounds) for bounds in self._image_bounds]
 
     def render(self, scale: float) -> FakeBitmap:
         """Record the scale and return a bitmap sized the way pypdfium2 sizes it, or raise PDFium's error."""
@@ -62,11 +92,18 @@ class FakePage:
 class FakePdfDocument:
     """Stands in for pypdfium2.PdfDocument over set page sizes, recording every call in order."""
 
-    def __init__(self, events: list[str], page_sizes: list[tuple[float, float]], failing_page_number: int) -> None:
-        """Hold the shared event log, the page sizes, and which page (if any) fails to render."""
+    def __init__(
+        self,
+        events: list[str],
+        page_sizes: list[tuple[float, float]],
+        failing_page_number: int,
+        image_bounds_by_page: dict[int, list[tuple[float, float, float, float]]],
+    ) -> None:
+        """Hold the shared event log, the page sizes, which page (if any) fails, and each page's image bounds."""
         self._events = events
         self._page_sizes = page_sizes
         self._failing_page_number = failing_page_number
+        self._image_bounds_by_page = image_bounds_by_page
 
     def __enter__(self) -> "FakePdfDocument":
         """Open as a context manager, like the real one."""
@@ -93,7 +130,8 @@ class FakePdfDocument:
         page_number = page_offset + 1
         self._events.append(f"open page {page_number}")
         failing = page_number == self._failing_page_number
-        return FakePage(self._events, page_number, self._page_sizes[page_offset], failing)
+        image_bounds = self._image_bounds_by_page.get(page_number, [])
+        return FakePage(self._events, page_number, self._page_sizes[page_offset], failing, image_bounds)
 
 
 class FakePdfium:
@@ -103,12 +141,13 @@ class FakePdfium:
         """Start with no pages, no failing page and an empty event log."""
         self.page_sizes: list[tuple[float, float]] = []
         self.failing_page_number = 0
+        self.image_bounds_by_page: dict[int, list[tuple[float, float, float, float]]] = {}
         self.events: list[str] = []
 
     def open_document(self, pdf_bytes: bytes) -> FakePdfDocument:
         """Open a fake document, ignoring the bytes."""
         self.events.append("open document")
-        return FakePdfDocument(self.events, self.page_sizes, self.failing_page_number)
+        return FakePdfDocument(self.events, self.page_sizes, self.failing_page_number, self.image_bounds_by_page)
 
 
 @pytest.fixture
@@ -212,3 +251,13 @@ def test_bytes_pdfium_cannot_open_raise_unreadable(input_bytes):
     """Bytes that aren't a whole PDF raise UnreadablePdfError when the first page is asked for."""
     with pytest.raises(UnreadablePdfError, match="PDFium could not read the PDF"):
         next(render_page_images(input_bytes))
+
+
+def test_each_page_image_notes_how_much_of_the_page_images_cover(fake_pdfium):
+    """A text page has no image objects (0); a page whose photo fills its lower 60% notes 0.6, for the WebP encoder."""
+    fake_pdfium.page_sizes = [US_LETTER, US_LETTER]
+    fake_pdfium.image_bounds_by_page = {2: [(0.0, 0.0, 612.0, 792.0 * 0.6)]}
+
+    page_images = list(render_page_images(STAND_IN_PDF))
+
+    assert [round(page_image.info[IMAGE_COVERAGE_KEY], 3) for page_image in page_images] == [0.0, 0.6]
