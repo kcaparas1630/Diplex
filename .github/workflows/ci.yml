@@ -1,5 +1,5 @@
-# Runs on every pull request and on main: the convention checker, the engine and script tests, the unoserver pool
-# against real LibreOffice, and the engine image (built, started, its pool ready). See convention 005.
+# Runs on every pull request and on main: the convention checker, the engine and script tests, and the engine image:
+# built, its unoserver pool tested with the image's own LibreOffice, then started and checked over HTTP. See convention 005.
 name: CI
 
 on:
@@ -42,26 +42,6 @@ jobs:
       - name: Script tests (convention checker, smoke test, load test)
         run: uv run --project core python -m pytest scripts
 
-  libreoffice-pool:
-    name: unoserver pool with real LibreOffice
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
-        with:
-          version: "0.13.6"
-      - name: Install LibreOffice Writer and unoserver 3.7
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libreoffice-writer-nogui libreoffice-uiconfig-writer python3-uno python3-venv
-          /usr/bin/python3 -m venv --system-site-packages ~/.venvs/unoserver
-          ~/.venvs/unoserver/bin/pip install unoserver==3.7
-      - name: Pool tests with LibreOffice
-        working-directory: core
-        run: |
-          uv sync --locked
-          PATH=~/.venvs/unoserver/bin:$PATH uv run pytest tests/test_unoserver_pool_with_libreoffice.py -rs
-
   engine-image:
     name: Engine image
     runs-on: ubuntu-24.04
@@ -88,6 +68,12 @@ jobs:
           done
           docker logs diplex-engine 2>&1 | grep 'diplex.unoserver_pool'
           test "$(docker logs diplex-engine 2>&1 | grep -c 'ready in')" -ge 2
+      - name: Pool tests with the image's own LibreOffice and unoserver
+        # As root, so the test venv can be written into the checkout; LibreOffice and unoserver are the image's.
+        run: |
+          docker run --rm --user root -v "$PWD:/repo" -w /repo/core \
+            -e UV_PROJECT_ENVIRONMENT=/tmp/test-venv -e UV_PYTHON_DOWNLOADS=never diplex-core:ci \
+            sh -c "uv sync --locked --python /usr/bin/python3 && uv run pytest tests/test_unoserver_pool_with_libreoffice.py -rs"
       - name: Container tests over HTTP
         working-directory: core
         run: |
