@@ -1,6 +1,6 @@
 # ADR 004: LibreOffice Runs Through a unoserver Pool
 
-> Status: **Accepted** · 2026-10-30 · Refined by [ADR 011](011-unoserver-pool-dispatcher.md): the engine, not unoserver's flags, recycles, times out and supervises the instances
+> Status: **Accepted** · 2026-10-30 · Refined by [ADR 011](011-unoserver-pool-dispatcher.md): the engine, not unoserver's flags, recycles, times out and supervises the instances · Isolation trade reviewed and confirmed in [ADR 014](014-isolation-review.md)
 
 ## Context
 
@@ -29,5 +29,5 @@ Measured on a laptop with unoserver 3.7 and LibreOffice 25.2.3 in the root Docke
 ## Consequences
 
 - **Less CPU per conversion,** since LibreOffice no longer starts for every job.
-- **Weaker isolation:** a malicious document can affect later conversions on the same instance until it is recycled. This is a deliberate trade, reviewed in the security milestone.
+- **Weaker isolation:** a malicious document can affect later conversions on the same instance until it is recycled. This is a deliberate trade, reviewed and confirmed in [ADR 014](014-isolation-review.md).
 - **Pool size, recycle count and timeout are open decisions** ([ADR 001](001-architecture.md) §7); the benchmark above is the evidence for them.

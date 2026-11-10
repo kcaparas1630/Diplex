@@ -116,3 +116,15 @@ jobs:
           docker run --rm --network diplex-no-egress diplex-core:ci \
             python3 -c "import urllib.request; assert urllib.request.urlopen('http://diplex-isolated:8000/health', timeout=10).status == 200"
           docker stop diplex-isolated
+      - name: Locked down (read-only root, no capabilities, no new privileges), the pool still starts (ADR 014)
+        run: |
+          docker run -d --name diplex-locked --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
+            -e DIPLEX_UNOSERVER_INSTANCES=2 -p 127.0.0.1:8001:8000 diplex-core:ci
+          for attempt in $(seq 1 90); do
+            if [ "$(docker logs diplex-locked 2>&1 | grep -c 'ready in')" -ge 2 ]; then break; fi
+            sleep 1
+          done
+          docker logs diplex-locked 2>&1 | grep -E 'diplex.unoserver_pool|Error|error' || true
+          test "$(docker logs diplex-locked 2>&1 | grep -c 'ready in')" -ge 2
+          curl -fsS http://127.0.0.1:8001/health
+          docker stop diplex-locked
