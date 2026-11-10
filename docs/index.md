@@ -16,6 +16,7 @@
 - [012 API key and version](adr/012-api-key-and-version.md)
 - [013 No network for LibreOffice](adr/013-no-network-for-libreoffice.md)
 - [014 Isolation review](adr/014-isolation-review.md)
+- [015 One page image size](adr/015-one-page-image-size.md)
 
 ## [Self-Hosting](self-hosting.md)
 
