@@ -13,6 +13,7 @@ from .api_version import UnsupportedApiVersionError, answer_unsupported_api_vers
 from .health_route import health_router
 from .job_log import quiet_upload_parser_warnings, send_job_logs_to_stderr
 from .openapi_spec import build_openapi_spec
+from .page_limit_setting import read_max_pages
 from .render_route import render_router
 from .request_errors import answer_http_error, answer_invalid_request
 from .unoserver_pool_lifespan import run_unoserver_pool
@@ -38,6 +39,7 @@ def create_app(unoserver_pool: UnoserverPool | None = None) -> FastAPI:
     # The pool starts with the app, not here, so building an app (for its OpenAPI spec, say) starts no LibreOffice.
     engine_app.state.unoserver_pool = UnoserverPool(read_unoserver_pool_settings()) if unoserver_pool is None else unoserver_pool
     engine_app.state.api_key = read_api_key()  # None: authentication is off
+    engine_app.state.max_pages = read_max_pages()
     engine_app.include_router(health_router)
     engine_app.include_router(render_router)
     engine_app.add_middleware(UploadSizeLimit, max_upload_bytes=read_max_upload_bytes())

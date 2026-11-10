@@ -19,7 +19,7 @@ from .docx_to_pdf import (
     count_available_cpus,
     unoserver_pool_logger,
 )
-from .document_render import RenderedDocument, render_docx, render_pdf
+from .document_render import RenderedDocument, TooManyPagesError, render_docx, render_pdf
 from .pages import PageTooLargeError, UnreadablePdfError
 
 __all__ = [
@@ -33,6 +33,7 @@ __all__ = [
     "MacroEnabledDocumentError",
     "PageTooLargeError",
     "RenderedDocument",
+    "TooManyPagesError",
     "UnreadablePdfError",
     "UnoserverPool",
     "UnoserverPoolSettings",

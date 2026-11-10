@@ -13,6 +13,10 @@ from diplex.engine.pages import PageWebp, encode_page_webps, read_page_sizes, re
 PDFIUM_LOCK = threading.Lock()
 
 
+class TooManyPagesError(Exception):
+    """The PDF, or the PDF a DOCX became, has more pages than the engine's page limit."""
+
+
 @dataclass(frozen=True)
 class RenderedDocument:
     """A rendered document: each page's size and lossless WebP, first page first, and the PDF a DOCX became."""
@@ -22,20 +26,22 @@ class RenderedDocument:
     converted_pdf: bytes | None = None  # None for a PDF upload, which gets no PDF back
 
 
-def render_pdf(pdf_bytes: bytes) -> RenderedDocument:
-    """Read each page's size and encode each page as a lossless WebP, waiting for any other document in PDFium."""
+def render_pdf(pdf_bytes: bytes, *, max_pages: int) -> RenderedDocument:
+    """Read each page's size, refuse more than max_pages, and encode each page as a WebP, one document in PDFium at a time."""
     with PDFIUM_LOCK:
         page_sizes = read_page_sizes(pdf_bytes)
+        if len(page_sizes) > max_pages:  # before any page is rendered
+            raise TooManyPagesError(f"the document has {len(page_sizes):,} pages, over the limit of {max_pages:,}")
         page_webps = list(encode_page_webps(render_page_images(pdf_bytes)))
     return RenderedDocument(page_sizes=page_sizes, page_webps=page_webps)
 
 
-def render_docx(docx_bytes: bytes, convert_docx_to_pdf: Callable[[bytes], bytes]) -> RenderedDocument:
+def render_docx(docx_bytes: bytes, convert_docx_to_pdf: Callable[[bytes], bytes], *, max_pages: int) -> RenderedDocument:
     """Check the DOCX, convert it to PDF with the given converter, then render that PDF, so images and PDF match page for page."""
     check_docx_zip_limits(docx_bytes)  # before anything else unzips it
     reject_macro_enabled_docx(docx_bytes)  # before LibreOffice ever opens it
     converted_pdf = convert_docx_to_pdf(docx_bytes)  # outside the PDFium lock: LibreOffice is a separate process
-    rendered_pdf = render_pdf(converted_pdf)
+    rendered_pdf = render_pdf(converted_pdf, max_pages=max_pages)  # a DOCX's pages are only known once converted
     return RenderedDocument(
         page_sizes=rendered_pdf.page_sizes, page_webps=rendered_pdf.page_webps, converted_pdf=converted_pdf
     )
