@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from diplex.api import create_app, render_route
 from diplex.api.job_log import log_unexpected_error, logged_render_job, render_job_logger, send_job_logs_to_stderr
-from diplex.definition import RenderError, RenderErrorCode
+from diplex.definition import API_VERSION_HEADER, CURRENT_API_VERSION, RenderError, RenderErrorCode
 from stand_in_unoserver_pool import StandInUnoserverPool
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
@@ -19,6 +19,9 @@ JOB_LINE = re.compile(
     r"^render job=(?P<job_id>[0-9a-f]{32}) source=(?P<source>\w+) bytes=(?P<size>\d+) pages=(?P<pages>[\d-]+) "
     r"duration_ms=(?P<duration>\d+) outcome=(?P<outcome>\w+)$"
 )
+
+
+VERSION_HEADERS = {API_VERSION_HEADER: CURRENT_API_VERSION}  # every /render request sends it (ADR 012)
 
 
 def _sample_bytes(sample_name: str) -> bytes:
@@ -46,7 +49,7 @@ def _document_words(pdf_bytes: bytes) -> set[str]:
 
 def _post_render(document_bytes: bytes, file_name: str = SECRET_FILE_NAME):
     """Send the bytes to /render as the document part of an upload."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         return client.post("/render", files={"document": (file_name, document_bytes, "application/pdf")})
 
 
@@ -165,7 +168,7 @@ def test_a_malformed_upload_leaves_none_of_its_bytes_in_the_logs(caplog):
     """python-multipart's warning quotes the byte it stopped at; it is kept out, and the client still gets 400."""
     caplog.set_level(logging.DEBUG)
 
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool())) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool()), headers=VERSION_HEADERS) as client:
         response = client.post(
             "/render", content=b"Zebra payroll", headers={"content-type": "multipart/form-data; boundary=missing"}
         )

@@ -37,6 +37,7 @@ from diplex.engine import (
 )
 
 from .api_key import require_api_key
+from .api_version import require_supported_api_version
 from .form_data import FormDataPart, encode_form_data
 from .job_log import RenderJob, log_unexpected_error, logged_render_job
 
@@ -55,7 +56,11 @@ ERROR_RESPONSES = {
 # What the OpenAPI spec says /render answers; every error is a RenderError in JSON.
 RESPONSES_IN_SPEC = {
     200: {"model": RenderResponseParts, "description": "The page sizes and page images, as multipart/form-data."},
-    400: {"model": RenderError, "description": "invalid_request: a body that isn't readable multipart/form-data."},
+    400: {
+        "model": RenderError,
+        "description": "unsupported_api_version: no Diplex-Api-Version header, or a version this engine doesn't serve; "
+        "or invalid_request: a body that isn't readable multipart/form-data.",
+    },
     401: {"model": RenderError, "description": "unauthorized: the engine has DIPLEX_API_KEY set and the request didn't send it."},
     413: {"model": RenderError, "description": "upload_too_large: over DIPLEX_MAX_UPLOAD_BYTES."},
     415: {"model": RenderError, "description": "unsupported_document_type: not a PDF or a DOCX."},
@@ -81,7 +86,7 @@ FIXED_MESSAGES = {DocxConversionError: "LibreOffice could not load or convert th
     "/render",
     summary="Render each page of a DOCX or PDF as a WebP image",
     responses=RESPONSES_IN_SPEC,
-    dependencies=[Depends(require_api_key)],
+    dependencies=[Depends(require_api_key), Depends(require_supported_api_version)],  # in this order: 401 before 400
     openapi_extra={
         "requestBody": {"content": {"multipart/form-data": {"encoding": {"document": {"contentType": DOCUMENT_PART_TYPES}}}}}
     },

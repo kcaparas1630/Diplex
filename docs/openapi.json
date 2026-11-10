@@ -36,7 +36,28 @@
         "summary": "Render each page of a DOCX or PDF as a WebP image",
         "description": "Render the uploaded DOCX or PDF, answering with its page sizes, page images and any converted PDF, or an error.",
         "operationId": "render_upload_render_post",
+        "security": [
+          {
+            "ApiKey": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "Diplex-Api-Version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "The API version the consumer codes against. This engine serves: 1."
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
@@ -48,8 +69,7 @@
                 }
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -63,7 +83,7 @@
             }
           },
           "400": {
-            "description": "invalid_request: a body that isn't readable multipart/form-data.",
+            "description": "unsupported_api_version: no Diplex-Api-Version header, or a version this engine doesn't serve; or invalid_request: a body that isn't readable multipart/form-data.",
             "content": {
               "application/json": {
                 "schema": {
@@ -132,13 +152,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          },
-          {}
-        ]
+        }
       }
     }
   },
@@ -228,6 +242,7 @@
         "enum": [
           "invalid_request",
           "unauthorized",
+          "unsupported_api_version",
           "upload_too_large",
           "unsupported_document_type",
           "unreadable_pdf",

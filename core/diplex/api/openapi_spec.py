@@ -1,7 +1,9 @@
-"""Builds the OpenAPI spec, with what FastAPI can't say alone: /render's multipart/form-data success and its optional API key."""
+"""Builds the OpenAPI spec, with what FastAPI can't say alone: /render's multipart success, optional key and required version."""
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+
+from diplex.definition import API_VERSION_HEADER, SUPPORTED_API_VERSIONS
 
 RENDER_PATH = "/render"
 
@@ -20,5 +22,10 @@ def build_openapi_spec(engine_app: FastAPI) -> dict:
         success_response["content"] = {"multipart/form-data": success_response["content"]["application/json"]}
         # The key is needed only when the engine has one; an empty requirement makes it optional (OpenAPI 3.1, Security Requirement Object).
         openapi_spec["paths"][RENDER_PATH]["post"]["security"].append({})
+        # The header is optional in Python only so a missing one gets unsupported_api_version, not FastAPI's 422.
+        for parameter in openapi_spec["paths"][RENDER_PATH]["post"]["parameters"]:
+            if parameter["name"] == API_VERSION_HEADER:
+                parameter["required"] = True
+                parameter["schema"] = {"type": "string", "enum": list(SUPPORTED_API_VERSIONS)}
         engine_app.openapi_schema = openapi_spec
     return engine_app.openapi_schema

@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException
 from diplex.engine import UnoserverPool
 
 from .api_key import ApiKeyRejectedError, answer_rejected_api_key, read_api_key
+from .api_version import UnsupportedApiVersionError, answer_unsupported_api_version
 from .health_route import health_router
 from .job_log import quiet_upload_parser_warnings, send_job_logs_to_stderr
 from .openapi_spec import build_openapi_spec
@@ -30,6 +31,7 @@ def create_app(unoserver_pool: UnoserverPool | None = None) -> FastAPI:
             RequestValidationError: answer_invalid_request,
             HTTPException: answer_http_error,
             ApiKeyRejectedError: answer_rejected_api_key,
+            UnsupportedApiVersionError: answer_unsupported_api_version,
         },
         lifespan=run_unoserver_pool,
     )

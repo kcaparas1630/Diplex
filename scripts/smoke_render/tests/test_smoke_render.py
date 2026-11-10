@@ -130,3 +130,12 @@ def test_the_engine_key_is_sent_when_set(engine_url, monkeypatch, configured_key
     post_document(engine_url, b"%PDF-1.7 stand-in")
 
     assert StandInEngine.received_headers[0].get("Authorization") == expected_authorization
+
+
+def test_every_upload_sends_the_api_version(engine_url):
+    """The engine refuses /render without Diplex-Api-Version, so every upload sends version 1."""
+    StandInEngine.received_headers.clear()
+
+    post_document(engine_url, b"%PDF-1.7 stand-in")
+
+    assert StandInEngine.received_headers[0]["Diplex-Api-Version"] == "1"

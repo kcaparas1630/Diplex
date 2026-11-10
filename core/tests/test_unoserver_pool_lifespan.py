@@ -6,7 +6,7 @@ import zipfile
 from fastapi.testclient import TestClient
 
 from diplex.api import create_app
-from diplex.definition import RenderErrorCode
+from diplex.definition import API_VERSION_HEADER, CURRENT_API_VERSION, RenderErrorCode
 from diplex.engine import UnoserverPool
 from stand_in_unoserver_pool import StandInUnoserverPool
 
@@ -15,6 +15,9 @@ WORD_CONTENT_TYPES = (
     '<Override PartName="/word/document.xml" '
     'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'
 )
+
+
+VERSION_HEADERS = {API_VERSION_HEADER: CURRENT_API_VERSION}  # every /render request sends it (ADR 012)
 
 
 def _word_package() -> bytes:
@@ -48,7 +51,7 @@ def test_a_docx_is_converted_by_the_apps_pool():
         return StandInUnoserverPool().convert_docx_to_pdf(docx_bytes)
 
     docx_bytes = _word_package()
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(refuse_and_record))) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(refuse_and_record)), headers=VERSION_HEADERS) as client:
         response = client.post("/render", files={"document": ("upload.docx", docx_bytes)})
 
     assert converted_documents == [docx_bytes]

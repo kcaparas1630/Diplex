@@ -17,12 +17,15 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from diplex.api import create_app
-from diplex.definition import RenderError, RenderErrorCode, RenderManifest
+from diplex.definition import API_VERSION_HEADER, CURRENT_API_VERSION, RenderError, RenderErrorCode, RenderManifest
 from diplex.engine.docx_to_pdf import DEFAULT_UNOSERVER_PORT, convert_docx_to_pdf
 from diplex.engine.pages import read_page_sizes
 from stand_in_unoserver_pool import StandInUnoserverPool
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
+
+
+VERSION_HEADERS = {API_VERSION_HEADER: CURRENT_API_VERSION}  # every /render request sends it (ADR 012)
 
 
 def _unoserver_is_listening() -> bool:
@@ -55,7 +58,7 @@ def _response_parts(response) -> list:
 
 def test_a_real_docx_comes_back_as_pages_and_the_pdf_they_were_rendered_from():
     """The SIU dissertation template: its PDF part's pages match the manifest and the page images, one for one."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(convert_docx_to_pdf))) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(convert_docx_to_pdf)), headers=VERSION_HEADERS) as client:
         response = client.post(
             "/render", files={"document": ("dissertation.docx", _sample_bytes("siu-dissertation-template.docx"))}
         )
@@ -87,7 +90,7 @@ def _without_part(docx_bytes: bytes, part_name: str) -> bytes:
 
 def test_the_cornell_budget_justification_now_renders():
     """The Cornell DOCX the benchmark couldn't load (it has comments) converts and renders."""
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(convert_docx_to_pdf))) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(convert_docx_to_pdf)), headers=VERSION_HEADERS) as client:
         response = client.post(
             "/render",
             files={"document": ("budget.docx", _sample_bytes("cornell-sponsored-budget-justification.docx"))},
@@ -103,7 +106,7 @@ def test_a_docx_libreoffice_cannot_load_gets_422():
     """A real DOCX missing its document part passes the type check, but LibreOffice can't load it: 422."""
     damaged_docx = _without_part(_sample_bytes("siu-dissertation-template.docx"), "word/document.xml")
 
-    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(convert_docx_to_pdf))) as client:
+    with TestClient(create_app(unoserver_pool=StandInUnoserverPool(convert_docx_to_pdf)), headers=VERSION_HEADERS) as client:
         response = client.post("/render", files={"document": ("damaged.docx", damaged_docx)})
 
     assert response.status_code == 422
