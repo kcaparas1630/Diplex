@@ -37,6 +37,11 @@ class UnoserverPoolSettings:
     unoserver_command: tuple[str, ...] = ("unoserver",)
     ready_timeout_seconds: float = DEFAULT_READY_TIMEOUT_SECONDS
 
+    def first_life_conversions(self, instance_index: int) -> int:
+        """Conversions before instance i's first recycle: the count less i/N of it, so the pool's recycles spread out."""
+        shortened_by = instance_index * self.conversions_before_recycle // self.instance_count
+        return max(1, self.conversions_before_recycle - shortened_by)
+
     def instance_ports(self, instance_index: int) -> InstancePorts:
         """The ports of instance `instance_index`: UNO on first_port + 2i, XML-RPC on the port after it."""
         uno_port = self.first_port + 2 * instance_index
@@ -69,6 +74,7 @@ class UnoserverPool:
                 unoserver_command=self.settings.unoserver_command,
                 ready_timeout_seconds=self.settings.ready_timeout_seconds,
                 conversions_before_recycle=self.settings.conversions_before_recycle,
+                first_life_conversions=self.settings.first_life_conversions(instance_index),
                 pool_condition=self._condition,
             )
             for instance_index in range(self.settings.instance_count)
