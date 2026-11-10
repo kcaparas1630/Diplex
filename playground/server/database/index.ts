@@ -2,5 +2,5 @@
 export { createDatabasePool } from "./database-pool";
 export type { DatabaseQueries } from "./database-pool";
 export { DOCUMENTS_TABLE_DEFINITION, ensureDocumentsTable } from "./documents-table";
-export { findOwnedDocumentRow, insertDocumentRow, listDocumentRows, toDocumentRow } from "./document-rows";
+export { findOwnedDocumentRow, insertDocumentRow, listDocumentRows, markDocumentDeleted, toDocumentRow } from "./document-rows";
 export type { DocumentRow, NewDocumentRow, SqlQueries, StoredPageSize } from "./document-rows";

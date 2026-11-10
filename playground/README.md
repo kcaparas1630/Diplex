@@ -2,6 +2,14 @@
 
 A sample consumer app for the Diplex engine, never published ([ADR 016](../docs/adr/016-playground-stack.md)). It does what a real app should: its server sends each upload to the engine's `POST /render`, keeps the results in its own bucket and database ([ADR 001](../docs/adr/001-architecture.md) §5), and hands the browser short-lived presigned URLs. It never imports the engine's code.
 
+## What It Shows
+
+- **Upload** (home page): the server sends the file to `/render` and stores the original, the PDF and every page image under `{prefix}/{userId}/{documentId}/`, then one row in `documents`; if the row fails, the files are removed.
+- **View** (`/documents/[id]`): pages laid out from their sizes at once; images load in batches of 10 through presigned URLs that expire after 30 minutes and are never stored.
+- **Download** the PDF or the original under the user's file name, through a URL signed on demand.
+- **Delete**: the row gets its deletion time and the document's folder is removed from the bucket.
+- **Users:** there is no sign-in; each browser gets a random user ID in an httpOnly cookie and sees only its own documents.
+
 ## Run It
 
 ```
