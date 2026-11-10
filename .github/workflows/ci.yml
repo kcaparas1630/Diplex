@@ -1,0 +1,87 @@
+# Runs on every pull request and on main: the convention checker, the engine and script tests, and the engine image:
+# built, its unoserver pool tested with the image's own LibreOffice, then started and checked over HTTP. See convention 005.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conventions:
+    name: Convention checker
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python -m scripts.conventions
+
+  engine-tests:
+    name: Engine and script tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.6"
+      - name: Install the engine and its test tools
+        working-directory: core
+        run: uv sync --locked
+      - name: Engine tests
+        working-directory: core
+        run: uv run pytest
+      - name: Script tests (convention checker, smoke test, load test)
+        run: uv run --project core python -m pytest scripts
+
+  engine-image:
+    name: Engine image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.6"
+      - uses: docker/setup-buildx-action@v4
+      - name: Build the image from the root Dockerfile
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: diplex-core:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Start the engine with two unoserver instances
+        run: |
+          docker run -d --name diplex-engine -p 127.0.0.1:8000:8000 -e DIPLEX_UNOSERVER_INSTANCES=2 diplex-core:ci
+          for attempt in $(seq 1 90); do
+            if [ "$(docker logs diplex-engine 2>&1 | grep -c 'ready in')" -ge 2 ]; then break; fi
+            sleep 1
+          done
+          docker logs diplex-engine 2>&1 | grep 'diplex.unoserver_pool'
+          test "$(docker logs diplex-engine 2>&1 | grep -c 'ready in')" -ge 2
+      - name: Pool tests with the image's own LibreOffice and unoserver
+        # As root, so the test venv can be written into the checkout; LibreOffice and unoserver are the image's.
+        run: |
+          docker run --rm --user root -v "$PWD:/repo" -w /repo/core \
+            -e UV_PROJECT_ENVIRONMENT=/tmp/test-venv -e UV_PYTHON_DOWNLOADS=never diplex-core:ci \
+            sh -c "uv sync --locked --python /usr/bin/python3 && uv run pytest tests/test_unoserver_pool_with_libreoffice.py -rs"
+      - name: Container tests over HTTP
+        working-directory: core
+        run: |
+          uv sync --locked
+          DIPLEX_ENGINE_URL=http://127.0.0.1:8000 uv run pytest tests/test_engine_container.py -rs
+      - name: docker stop stops the engine and its pool within 10 s
+        run: |
+          started=$(date +%s)
+          docker stop diplex-engine
+          test $(( $(date +%s) - started )) -lt 10
+          docker logs diplex-engine 2>&1 | tail -5

@@ -29,7 +29,7 @@ Diplex is an open-source (MIT), self-hosted document rendering engine for consum
 
 ## Testing
 
-- **Unit-test every module, and run the full suite and the convention checker before reporting work as done.**
+- **Unit-test every module, and run the full suite and the convention checker before reporting work as done.** CI (`.github/workflows/ci.yml`) runs them again on every pull request.
 - **Measure on the real documents in `samples/`;** never generate sample documents. Never claim Word fidelity without a Word comparison. Report failures and bad numbers faithfully ([convention 005](docs/code-convention/005-tooling-and-testing.md)).
 
 ## Commands
