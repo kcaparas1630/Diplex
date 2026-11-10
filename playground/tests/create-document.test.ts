@@ -30,6 +30,7 @@ function standInStore(options: { rowFails?: boolean; uploadFails?: boolean; rend
   const store: DocumentStore = {
     engine: { engineUrl: "http://engine:8000", engineApiKey: undefined },
     serverClient,
+    signingClient: serverClient,
     bucketName: "bucket",
     folderPrefix: "playground",
     database: {

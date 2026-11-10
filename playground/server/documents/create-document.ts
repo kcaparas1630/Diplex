@@ -5,10 +5,11 @@ import { insertDocumentRow, type DocumentRow, type SqlQueries } from "../databas
 import { renderDocument, type EngineConnection, type RenderResult } from "../engine-client";
 import { documentFolder, removeDocumentFolder, uploadDocumentFiles } from "../storage";
 
-/** What storing a document needs: the engine, the bucket and the database. */
+/** What the document routes need: the engine, the bucket (with its URL-signing client) and the database. */
 export interface DocumentStore {
   engine: EngineConnection;
   serverClient: S3Client;
+  signingClient: S3Client;
   bucketName: string;
   folderPrefix: string;
   database: SqlQueries;

@@ -48,6 +48,16 @@ export async function listDocumentRows(database: SqlQueries, ownerId: string): P
   return listed.rows.map(toDocumentRow);
 }
 
+/** The owner's document with this ID, or null when it doesn't exist, is deleted, or belongs to someone else. */
+export async function findOwnedDocumentRow(database: SqlQueries, documentId: string, ownerId: string): Promise<DocumentRow | null> {
+  const found = await database.query(
+    `SELECT id, owner_id, file_name, folder, source_type, page_sizes, created_at, deleted_at
+     FROM documents WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL`,
+    [documentId, ownerId],
+  );
+  return found.rows.length === 1 ? toDocumentRow(found.rows[0]) : null;
+}
+
 /** Turn a database row's columns into a DocumentRow. */
 export function toDocumentRow(columns: Record<string, unknown>): DocumentRow {
   return {
