@@ -122,6 +122,21 @@ jobs:
     defaults:
       run:
         working-directory: playground
+    services:  # a real store and database for the integration tests, on ports the compose step below doesn't use
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: playground
+          POSTGRES_PASSWORD: playground
+          POSTGRES_DB: playground
+        ports: ["15432:5432"]
+        options: --health-cmd "pg_isready -U playground" --health-interval 2s --health-retries 30
+      rustfs:
+        image: rustfs/rustfs:1.0.4
+        env:
+          RUSTFS_ACCESS_KEY: playground
+          RUSTFS_SECRET_KEY: playground-secret
+        ports: ["19000:9000"]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -134,7 +149,11 @@ jobs:
           cache-dependency-path: playground/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
-      - run: pnpm test
+      - name: Tests, with the integration tests on the service containers
+        env:
+          PLAYGROUND_TEST_DATABASE_URL: postgres://playground:playground@127.0.0.1:15432/playground
+          PLAYGROUND_TEST_S3_ENDPOINT: http://127.0.0.1:19000
+        run: pnpm test
       - run: pnpm build
       - name: One command starts the engine, RustFS, Postgres and the playground
         run: |

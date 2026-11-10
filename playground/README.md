@@ -8,7 +8,7 @@ A sample consumer app for the Diplex engine, never published ([ADR 016](../docs/
 docker compose up --build        # engine, RustFS, Postgres and the playground; then open http://localhost:3000
 ```
 
-The engine runs on a network with no egress, which only the playground also joins ([ADR 013](../docs/adr/013-no-network-for-libreoffice.md)). The credentials in `compose.yaml` are for local use only.
+On first start the playground creates its bucket and its `documents` table (`instrumentation.ts`). The engine runs on a network with no egress, which only the playground also joins ([ADR 013](../docs/adr/013-no-network-for-libreoffice.md)). The credentials in `compose.yaml` are for local use only.
 
 ## Work on It
 
@@ -16,7 +16,7 @@ The engine runs on a network with no egress, which only the playground also join
 pnpm install
 pnpm dev                         # http://localhost:3000; set the variables below to reach an engine, a bucket and a database
 pnpm typecheck
-pnpm test
+pnpm test                        # integration tests run too when PLAYGROUND_TEST_DATABASE_URL and PLAYGROUND_TEST_S3_ENDPOINT are set
 pnpm build
 ```
 
