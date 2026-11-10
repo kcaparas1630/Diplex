@@ -3,6 +3,7 @@ import type { S3Client } from "@aws-sdk/client-s3";
 import type { Pool } from "pg";
 
 import { createDatabasePool, ensureDocumentsTable } from "./database";
+import type { DocumentStore } from "./documents";
 import { readPlaygroundSettings, type PlaygroundSettings } from "./settings";
 import { createBucketClients, ensureBucketExists } from "./storage";
 
@@ -43,4 +44,16 @@ export async function prepareStorage(): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, STARTUP_RETRY_MILLISECONDS));
     }
   }
+}
+
+/** The document store every route uses: the engine, the bucket and the database from the services. */
+export function getDocumentStore(): DocumentStore {
+  const services = getPlaygroundServices();
+  return {
+    engine: { engineUrl: services.settings.engineUrl, engineApiKey: services.settings.engineApiKey },
+    serverClient: services.serverClient,
+    bucketName: services.settings.bucket.bucketName,
+    folderPrefix: services.settings.bucket.folderPrefix,
+    database: services.database,
+  };
 }
