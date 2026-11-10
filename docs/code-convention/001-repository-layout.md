@@ -31,6 +31,7 @@ scripts/
   start-unoserver.sh           builds the engine image and runs one unoserver on port 2003 for the engine tests
   engine-entrypoint.sh         the image's command: runs the engine API, which starts its unoserver pool
 .claude/settings.json          Claude Code project settings: the Stop hook that runs the checker
+.github/workflows/ci.yml       CI on every pull request and on main (convention 005)
 samples/                       real test documents (git-ignored, never committed)
 ```
 
