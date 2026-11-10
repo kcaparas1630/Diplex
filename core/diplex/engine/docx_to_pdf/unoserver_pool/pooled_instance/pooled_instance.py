@@ -1,4 +1,4 @@
-"""One instance of the unoserver pool: its state, and the keeper thread that starts it and kills it (ADR 011).
+"""One instance of the unoserver pool: its state, and the keeper thread that starts, recycles and kills it (ADR 011).
 
 The pool and every keeper share one condition: each reads or changes an instance's state only while holding it, and
 notifies it after a change, so a conversion waiting for an idle instance wakes up when one becomes free.
@@ -24,6 +24,7 @@ class InstanceState(Enum):
     STARTING = "starting"  # unoserver started, LibreOffice not answering yet
     IDLE = "idle"  # answering, and free for a conversion
     BUSY = "busy"  # converting one document
+    RECYCLING = "recycling"  # being killed, with its whole process group, and started afresh
     DOWN = "down"  # not running: it failed to start, or exited
     STOPPED = "stopped"  # the pool is shutting down
 
@@ -49,6 +50,7 @@ class PooledInstance:
         self._condition = pool_condition
         self._state = InstanceState.STARTING
         self._stopping = False
+        self._recycle_reason = ""
         self._unoserver_process: UnoserverProcess | None = None
         self._keeper_thread = threading.Thread(
             target=self._keep_running, name=f"unoserver-keeper-{instance_index}", daemon=True
@@ -83,21 +85,31 @@ class PooledInstance:
         return True
 
     def release(self) -> None:
-        """Make a busy instance idle again after its conversion, or down if unoserver died; call it holding the condition."""
+        """Make a busy instance idle again after its conversion, or recycle it if unoserver died; call it holding the condition."""
         if self._state is not InstanceState.BUSY:
             return
-        unoserver_exited = self._unoserver_process is None or self._unoserver_process.has_exited()
-        self._state = InstanceState.DOWN if unoserver_exited else InstanceState.IDLE
-        if unoserver_exited:
-            instance_logger.error("unoserver instance %d exited during a conversion", self.instance_index)
-        self._condition.notify_all()
+        if self._unoserver_process is None or self._unoserver_process.has_exited():
+            self._recycle("its unoserver exited during a conversion")
+            return
+        self._set_state(InstanceState.IDLE)
+
+    def _recycle(self, reason: str) -> None:
+        """Hand the instance to its keeper to kill and start afresh, before it takes another job; call it holding the condition."""
+        self._recycle_reason = reason
+        self._set_state(InstanceState.RECYCLING)
 
     def _keep_running(self) -> None:
-        """Start the instance and wait until it answers, then keep it until the pool stops, and kill it."""
-        self._start_and_wait_until_ready()
-        with self._condition:
-            self._condition.wait_for(lambda: self._stopping)
-            self._set_state(InstanceState.STOPPED)
+        """Start the instance and keep it, recycling it whenever asked, until the pool stops; then kill it."""
+        while True:
+            self._start_and_wait_until_ready()
+            with self._condition:
+                self._condition.wait_for(lambda: self._stopping or self._state is InstanceState.RECYCLING)
+                if self._stopping:
+                    self._set_state(InstanceState.STOPPED)
+                    break
+                recycle_reason = self._recycle_reason
+            instance_logger.warning("recycling unoserver instance %d: %s", self.instance_index, recycle_reason)
+            self._kill_unoserver()  # the whole process group, so no soffice.bin keeps the UNO port
         self._kill_unoserver()
 
     def _start_and_wait_until_ready(self) -> bool:

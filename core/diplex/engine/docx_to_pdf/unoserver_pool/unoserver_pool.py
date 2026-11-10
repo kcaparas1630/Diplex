@@ -16,7 +16,7 @@ FIRST_UNOSERVER_PORT = 2002  # instance 0 gets unoserver's default ports: 2002 f
 DEFAULT_WAIT_SECONDS = 30.0
 DEFAULT_READY_TIMEOUT_SECONDS = 60.0  # unoserver sleeps 7 s, then tries LibreOffice for up to about 40 s
 # States from which an instance may still become idle, so a conversion is worth waiting for.
-STATES_WORTH_WAITING_FOR = frozenset({InstanceState.STARTING, InstanceState.BUSY})
+STATES_WORTH_WAITING_FOR = frozenset({InstanceState.STARTING, InstanceState.BUSY, InstanceState.RECYCLING})
 
 
 class ConverterBusyError(Exception):

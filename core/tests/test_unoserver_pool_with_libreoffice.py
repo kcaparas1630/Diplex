@@ -9,7 +9,10 @@ from pathlib import Path
 import pytest
 
 from diplex.engine import InstanceState, UnoserverPool, UnoserverPoolSettings
+from diplex.engine.docx_to_pdf.unoserver_client import unoserver_answers
+from diplex.engine.docx_to_pdf.unoserver_pool.pooled_instance.unoserver_process import InstancePorts, start_unoserver_process
 from localhost_ports import find_free_port_range, wait_until_closed
+from process_groups import process_names_in_group
 
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
 LIBREOFFICE_START_SECONDS = 60
@@ -26,19 +29,13 @@ def _wait_until_all_idle(unoserver_pool: UnoserverPool) -> None:
         time.sleep(0.5)
 
 
-def _process_names_in_group(process_group_id: int) -> list[str]:
-    """The command names of every process in the group, from /proc."""
-    process_names = []
-    for stat_path in Path("/proc").glob("[0-9]*/stat"):
-        try:
-            stat_line = stat_path.read_text()
-        except OSError:
-            continue  # the process ended while we looked
-        command_name = stat_line[stat_line.index("(") + 1 : stat_line.rindex(")")]
-        fields_after_name = stat_line[stat_line.rindex(")") + 2 :].split()
-        if int(fields_after_name[2]) == process_group_id and fields_after_name[0] != "Z":
-            process_names.append(command_name)
-    return process_names
+def _wait_until_answering(xmlrpc_port: int) -> None:
+    """Wait until the unoserver on the port answers its info call, or fail the test."""
+    deadline = time.monotonic() + LIBREOFFICE_START_SECONDS
+    while not unoserver_answers(xmlrpc_port, timeout_seconds=5):
+        if time.monotonic() > deadline:
+            raise AssertionError(f"unoserver on port {xmlrpc_port} did not answer")
+        time.sleep(0.5)
 
 
 @pytest.fixture
@@ -59,7 +56,7 @@ def test_each_instance_becomes_idle_with_its_own_libreoffice_in_its_process_grou
     for pooled_instance in running_pool.instances:
         with xmlrpc.client.ServerProxy(f"http://127.0.0.1:{pooled_instance.ports.xmlrpc_port}") as unoserver:
             assert unoserver.info()["api"] == "3"
-        assert "soffice.bin" in _process_names_in_group(pooled_instance.unoserver_process.process_id)
+        assert "soffice.bin" in process_names_in_group(pooled_instance.unoserver_process.process_id)
 
 
 def test_stopping_the_pool_ends_libreoffice_and_closes_its_ports(running_pool):
@@ -72,7 +69,7 @@ def test_stopping_the_pool_ends_libreoffice_and_closes_its_ports(running_pool):
     for unoserver_process in unoserver_processes:
         wait_until_closed(unoserver_process.ports.uno_port, timeout_seconds=5)
         wait_until_closed(unoserver_process.ports.xmlrpc_port, timeout_seconds=5)
-        assert _process_names_in_group(unoserver_process.process_id) == []
+        assert process_names_in_group(unoserver_process.process_id) == []
 
 
 def test_sample_docx_files_convert_side_by_side(running_pool):
@@ -94,3 +91,24 @@ def test_sample_docx_files_convert_side_by_side(running_pool):
 
     assert len(pdf_documents) == len(sample_paths)
     assert all(pdf_bytes.startswith(b"%PDF-") for pdf_bytes in pdf_documents)
+
+
+def test_killing_an_instance_takes_libreoffice_and_frees_its_ports_for_a_fresh_one(tmp_path):
+    """Killing the group ends soffice.bin with unoserver and closes both ports, so a new instance starts on the same ones."""
+    first_port = find_free_port_range(2)
+    ports = InstancePorts(uno_port=first_port, xmlrpc_port=first_port + 1)
+    first_process = start_unoserver_process(("unoserver",), ports, tmp_path / "instance-0")
+    try:
+        _wait_until_answering(ports.xmlrpc_port)
+        assert "soffice.bin" in process_names_in_group(first_process.process_id)
+    finally:
+        first_process.kill()
+
+    assert process_names_in_group(first_process.process_id) == []
+    wait_until_closed(ports.uno_port, timeout_seconds=1)
+    wait_until_closed(ports.xmlrpc_port, timeout_seconds=1)
+    second_process = start_unoserver_process(("unoserver",), ports, tmp_path / "instance-0")
+    try:
+        _wait_until_answering(ports.xmlrpc_port)
+    finally:
+        second_process.kill()
