@@ -5,7 +5,9 @@ import socket
 import time
 
 PORT_RANGE_START = 20000
-PORT_RANGE_END = 60000
+# Below the ports the system gives outgoing connections (Linux 32768-60999, macOS 49152-65535): unoserver connects to
+# LibreOffice on the UNO port, and that connection could take the XML-RPC port next to it, so the instance never starts.
+PORT_RANGE_END = 32000
 
 
 def find_free_port_range(port_count: int) -> int:
