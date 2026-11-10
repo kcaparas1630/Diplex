@@ -1,0 +1,6 @@
+# Installed packages, Next.js build output and the type file Next.js generates; never committed
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.env

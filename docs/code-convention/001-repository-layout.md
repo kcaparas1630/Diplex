@@ -21,8 +21,11 @@ core/                          Python engine (uv project diplex-core): the whole
       form_data/               builds multipart/form-data response bodies
       job_log/                 logs each render job without its contents
   tests/
-playground/                    sample consumer app: calls the engine over HTTP and stores the results
+playground/                    sample consumer app (Next.js, ADR 016): calls the engine over HTTP and stores the results
                                in its own bucket and database (never published)
+  app/                         pages and API routes (Next.js App Router), an index.ts in every folder
+  tests/                       Vitest tests
+  compose.yaml                 starts the engine, RustFS, Postgres and the playground with one command
 docs/                          see docs/README.md
 scripts/
   conventions/                 the convention checker (convention 010)

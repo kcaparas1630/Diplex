@@ -30,3 +30,18 @@
 | truststore | MIT | installed with httpx2 (development only) |
 | hatchling | MIT | builds the `diplex-core` package |
 | uv | MIT or Apache-2.0 (its repository ships both licence files) | installs the engine from `uv.lock` in the engine image, pinned to 0.13.6 |
+
+## Current Playground Dependencies
+
+The playground is never published, but its dependencies follow the same rule ([ADR 016](../adr/016-playground-stack.md)).
+
+| Component | Licence | Use |
+|---|---|---|
+| Next.js | MIT | the playground's web framework and server |
+| React, React DOM | MIT | its pages and the viewer |
+| TypeScript | Apache-2.0 | its language (development only) |
+| Vitest | MIT | its tests (development only) |
+| yaml | ISC | reads `compose.yaml` in its tests (development only) |
+| pnpm | MIT | installs its packages |
+| PostgreSQL | PostgreSQL License | its database, as a separate container |
+| RustFS | Apache-2.0 | its local S3-compatible bucket, as a separate container |
