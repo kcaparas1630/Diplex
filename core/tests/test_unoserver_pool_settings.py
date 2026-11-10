@@ -3,14 +3,21 @@
 import pytest
 
 from diplex.api import create_app
-from diplex.api.unoserver_pool_settings import INSTANCE_COUNT_VARIABLE, read_unoserver_pool_settings
+from diplex.api.unoserver_pool_settings import (
+    INSTANCE_COUNT_VARIABLE,
+    RECYCLE_COUNT_VARIABLE,
+    TIMEOUT_SECONDS_VARIABLE,
+    WAIT_SECONDS_VARIABLE,
+    read_unoserver_pool_settings,
+)
+from diplex.engine import count_available_cpus
 
 
-def test_one_instance_by_default(monkeypatch):
-    """Without DIPLEX_UNOSERVER_INSTANCES, the pool runs one instance."""
+def test_one_instance_per_available_vcpu_by_default(monkeypatch):
+    """Without DIPLEX_UNOSERVER_INSTANCES, the pool runs one instance per vCPU available to the engine."""
     monkeypatch.delenv(INSTANCE_COUNT_VARIABLE, raising=False)
 
-    assert read_unoserver_pool_settings().instance_count == 1
+    assert read_unoserver_pool_settings().instance_count == count_available_cpus()
 
 
 def test_the_instance_count_comes_from_the_environment(monkeypatch):
@@ -35,3 +42,73 @@ def test_the_engine_refuses_to_start_with_an_unreadable_instance_count(monkeypat
 
     with pytest.raises(ValueError, match=INSTANCE_COUNT_VARIABLE):
         create_app()
+
+
+def test_a_docx_waits_30_seconds_for_an_instance_by_default(monkeypatch):
+    """Without DIPLEX_CONVERTER_WAIT_SECONDS, a conversion waits up to 30 s for an idle instance."""
+    monkeypatch.delenv(WAIT_SECONDS_VARIABLE, raising=False)
+
+    assert read_unoserver_pool_settings().wait_seconds == 30
+
+
+@pytest.mark.parametrize(("configured_value", "wait_seconds"), [("0", 0), ("90", 90)])
+def test_the_wait_comes_from_the_environment(monkeypatch, configured_value, wait_seconds):
+    """DIPLEX_CONVERTER_WAIT_SECONDS sets the wait in whole seconds; 0 means a busy pool answers at once."""
+    monkeypatch.setenv(WAIT_SECONDS_VARIABLE, configured_value)
+
+    assert read_unoserver_pool_settings().wait_seconds == wait_seconds
+
+
+@pytest.mark.parametrize("configured_value", ["-1", "half a minute", "2.5"])
+def test_a_wait_it_cannot_use_is_refused(monkeypatch, configured_value):
+    """A negative or non-whole wait raises ValueError naming the variable."""
+    monkeypatch.setenv(WAIT_SECONDS_VARIABLE, configured_value)
+
+    with pytest.raises(ValueError, match=WAIT_SECONDS_VARIABLE):
+        read_unoserver_pool_settings()
+
+
+def test_a_conversion_may_take_120_seconds_by_default(monkeypatch):
+    """Without DIPLEX_CONVERSION_TIMEOUT_SECONDS, a conversion times out after 120 s, above the benchmark's slowest (75 s)."""
+    monkeypatch.delenv(TIMEOUT_SECONDS_VARIABLE, raising=False)
+
+    assert read_unoserver_pool_settings().conversion_timeout_seconds == 120
+
+
+def test_the_timeout_comes_from_the_environment(monkeypatch):
+    """DIPLEX_CONVERSION_TIMEOUT_SECONDS sets the timeout in whole seconds."""
+    monkeypatch.setenv(TIMEOUT_SECONDS_VARIABLE, "240")
+
+    assert read_unoserver_pool_settings().conversion_timeout_seconds == 240
+
+
+@pytest.mark.parametrize("configured_value", ["0", "-5", "2 minutes"])
+def test_a_timeout_it_cannot_use_is_refused(monkeypatch, configured_value):
+    """A zero, negative or non-whole timeout raises ValueError naming the variable."""
+    monkeypatch.setenv(TIMEOUT_SECONDS_VARIABLE, configured_value)
+
+    with pytest.raises(ValueError, match=TIMEOUT_SECONDS_VARIABLE):
+        read_unoserver_pool_settings()
+
+
+def test_an_instance_is_recycled_after_50_conversions_by_default(monkeypatch):
+    """Without DIPLEX_CONVERSIONS_BEFORE_RECYCLE, an instance is recycled after 50 conversions (the benchmark's ~1 GB)."""
+    monkeypatch.delenv(RECYCLE_COUNT_VARIABLE, raising=False)
+
+    assert read_unoserver_pool_settings().conversions_before_recycle == 50
+
+
+def test_the_recycle_count_comes_from_the_environment(monkeypatch):
+    """DIPLEX_CONVERSIONS_BEFORE_RECYCLE sets the count."""
+    monkeypatch.setenv(RECYCLE_COUNT_VARIABLE, "200")
+
+    assert read_unoserver_pool_settings().conversions_before_recycle == 200
+
+
+@pytest.mark.parametrize("configured_value", ["0", "-1", "fifty"])
+def test_a_recycle_count_it_cannot_use_is_refused(monkeypatch, configured_value):
+    """A count below 1, or not a whole number, raises ValueError naming the variable."""
+    monkeypatch.setenv(RECYCLE_COUNT_VARIABLE, configured_value)
+
+    with pytest.raises(ValueError, match=RECYCLE_COUNT_VARIABLE):
+        read_unoserver_pool_settings()

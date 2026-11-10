@@ -3,11 +3,14 @@
 import os
 import shutil
 import signal
+import socket
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 LOCALHOST = "127.0.0.1"  # unoserver's ports are unauthenticated, so they never listen beyond the container
+PORTS_CLOSE_TIMEOUT_SECONDS = 10.0  # measured: both ports closed 0.05 s after the group was killed
 
 
 @dataclass(frozen=True)
@@ -37,12 +40,13 @@ class UnoserverProcess:
         return self._process.poll() is not None
 
     def kill(self) -> None:
-        """Kill unoserver and every LibreOffice process in its group, reap unoserver, and delete its scratch folder."""
+        """Kill unoserver and every LibreOffice process in its group, wait until its ports close, and delete its scratch folder."""
         try:
             os.killpg(self._process.pid, signal.SIGKILL)  # signalling unoserver alone leaves soffice.bin running
         except ProcessLookupError:
             pass  # the whole group is already gone
         self._process.wait()
+        _wait_until_closed((self.ports.uno_port, self.ports.xmlrpc_port), PORTS_CLOSE_TIMEOUT_SECONDS)
         shutil.rmtree(self.scratch_folder, ignore_errors=True)
 
 
@@ -67,3 +71,19 @@ def start_unoserver_process(unoserver_command: tuple[str, ...], ports: InstanceP
         shutil.rmtree(scratch_folder, ignore_errors=True)
         raise
     return UnoserverProcess(process, ports, scratch_folder)
+
+
+def _wait_until_closed(ports: tuple[int, ...], timeout_seconds: float) -> None:
+    """Wait until nothing accepts connections on any of the localhost ports, giving up after the timeout."""
+    deadline = time.monotonic() + timeout_seconds
+    while any(_port_is_listening(port) for port in ports) and time.monotonic() < deadline:
+        time.sleep(0.05)
+
+
+def _port_is_listening(port: int) -> bool:
+    """Tell whether something accepts connections on the localhost port."""
+    try:
+        with socket.create_connection((LOCALHOST, port), timeout=0.5):
+            return True
+    except OSError:
+        return False

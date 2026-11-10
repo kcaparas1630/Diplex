@@ -64,4 +64,4 @@ def test_without_a_pool_the_app_builds_one_from_the_environment(monkeypatch):
 
     assert isinstance(engine_app.state.unoserver_pool, UnoserverPool)
     assert engine_app.state.unoserver_pool.settings.instance_count == 3
-    assert engine_app.state.unoserver_pool.running_processes() == []
+    assert engine_app.state.unoserver_pool.instances == []

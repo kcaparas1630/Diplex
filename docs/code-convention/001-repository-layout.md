@@ -11,8 +11,9 @@ core/                          Python engine (uv project diplex-core): the whole
     engine/
       docx_to_pdf/             DOCX to PDF with LibreOffice
         unoserver_client/      XML-RPC calls to one unoserver
-        unoserver_pool/        the engine's unoserver instances (ADR 011)
-          unoserver_process/   one instance: its own session, ports and scratch folder
+        unoserver_pool/        the engine's unoserver instances and the dispatcher (ADR 011)
+          pooled_instance/     one instance's state and keeper thread
+            unoserver_process/ its process: its own session, ports and scratch folder
       pdf_loading/             loads a PDF's bytes into PDFium, for pages/ and checks/
       pages/                   PDF -> WebP page images and page sizes
       checks/                  input checks: document type, size, pages, macros, zip bombs
@@ -26,6 +27,7 @@ docs/                          see docs/README.md
 scripts/
   conventions/                 the convention checker (convention 010)
   smoke_render/                renders every sample through a running engine and reports what happened
+  load_test/                   sends every DOCX sample to a running engine, several at once, and reports throughput and latency
   start-unoserver.sh           builds the engine image and runs one unoserver on port 2003 for the engine tests
   engine-entrypoint.sh         the image's command: runs the engine API, which starts its unoserver pool
 .claude/settings.json          Claude Code project settings: the Stop hook that runs the checker

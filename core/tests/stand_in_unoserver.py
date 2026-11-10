@@ -4,7 +4,9 @@ Run as `python stand_in_unoserver.py --port P --uno-port Q ...`. Like unoserver,
 in its own process group, which holds the UNO port and ignores SIGTERM, as soffice.bin outlived unoserver in the
 benchmark. The DOCX bytes pick what a conversion does: b"slow..." takes a minute, b"crash..." kills this unoserver
 (leaving its LibreOffice running), b"fault..." raises, and anything else returns a PDF naming this process. Each start
-appends a line to the file in STAND_IN_UNOSERVER_LOG, if set; STAND_IN_UNOSERVER_START_SECONDS delays readiness.
+appends a line to the file in STAND_IN_UNOSERVER_LOG, if set; STAND_IN_UNOSERVER_START_SECONDS delays readiness, and
+STAND_IN_UNOSERVER_CONVERT_SECONDS makes every conversion take that long. While the file named in
+STAND_IN_UNOSERVER_FAIL_WHILE exists, it records its start and exits at once, as a unoserver that can't start.
 """
 
 import argparse
@@ -34,12 +36,17 @@ def main() -> None:
         _hold_the_uno_port(arguments.uno_interface, arguments.uno_port)
         return
     _record_start(arguments)
+    fail_marker = os.environ.get("STAND_IN_UNOSERVER_FAIL_WHILE")
+    if fail_marker and os.path.exists(fail_marker):
+        sys.exit(1)
+    if not _port_is_free(arguments.uno_interface, arguments.uno_port):
+        sys.exit(1)  # the UNO port is taken, as when an old soffice.bin still holds it
     libreoffice = subprocess.Popen(
         [sys.executable, __file__, "--libreoffice", "--uno-interface", arguments.uno_interface, "--uno-port", str(arguments.uno_port)]
     )
     time.sleep(float(os.environ.get("STAND_IN_UNOSERVER_START_SECONDS", "0")))
     if libreoffice.poll() is not None:
-        sys.exit(1)  # the UNO port was taken, as when an old soffice.bin still holds it
+        sys.exit(1)
     server = xmlrpc.server.SimpleXMLRPCServer(
         (arguments.interface, arguments.port), allow_none=True, logRequests=False, use_builtin_types=True
     )
@@ -58,13 +65,22 @@ def _hold_the_uno_port(uno_interface: str, uno_port: int) -> None:
         connection.close()
 
 
+def _port_is_free(interface: str, port: int) -> bool:
+    """Tell whether a listener could bind the port now."""
+    try:
+        with socket.create_server((interface, port)):
+            return True
+    except OSError:
+        return False
+
+
 def _record_start(arguments: argparse.Namespace) -> None:
     """Append this start's process ID, group and arguments to the log file, if one is set."""
     log_path = os.environ.get("STAND_IN_UNOSERVER_LOG")
     if log_path:
         with open(log_path, "a") as log_file:
             log_file.write(
-                f"start pid={os.getpid()} pgid={os.getpgid(0)} port={arguments.port} uno_port={arguments.uno_port} "
+                f"start at={time.monotonic()} pid={os.getpid()} pgid={os.getpgid(0)} port={arguments.port} uno_port={arguments.uno_port} "
                 f"interface={arguments.interface} uno_interface={arguments.uno_interface} "
                 f"user_installation={arguments.user_installation} temp_dir={arguments.temp_dir}\n"
             )
@@ -77,6 +93,7 @@ def _report_info() -> dict:
 
 def _convert(inpath, indata, outpath, convert_to, filtername, filter_options, update_index, infiltername):
     """Act on the DOCX bytes: be slow, crash, fail, or return a PDF that names this process."""
+    time.sleep(float(os.environ.get("STAND_IN_UNOSERVER_CONVERT_SECONDS", "0")))
     if indata.startswith(b"slow"):
         time.sleep(SLOW_CONVERSION_SECONDS)
     if indata.startswith(b"crash"):

@@ -12,7 +12,7 @@ from email import policy
 from email.parser import BytesParser
 from pathlib import Path
 
-UNOSERVER_START_SECONDS = 60  # a DOCX gets 503 until LibreOffice has started; keep asking for this long
+UNOSERVER_START_SECONDS = 60  # a DOCX waits for LibreOffice to start but can still get 503; keep asking for this long
 REQUEST_TIMEOUT_SECONDS = 600
 
 
@@ -36,7 +36,7 @@ def render_sample(engine_url: str, sample_path: Path) -> SampleResult:
     deadline = time.monotonic() + UNOSERVER_START_SECONDS
     while True:
         started = time.perf_counter()
-        status, content_type, body = _post_document(engine_url, document_bytes)
+        status, content_type, body = post_document(engine_url, document_bytes)
         seconds = time.perf_counter() - started
         if status != 503 or time.monotonic() > deadline:
             break
@@ -62,7 +62,7 @@ def render_sample(engine_url: str, sample_path: Path) -> SampleResult:
     )
 
 
-def _post_document(engine_url: str, document_bytes: bytes) -> tuple[int, str, bytes]:
+def post_document(engine_url: str, document_bytes: bytes) -> tuple[int, str, bytes]:
     """POST the bytes as the document part of a multipart/form-data upload; return status, content type and body."""
     boundary = uuid.uuid4().hex
     request_body = (

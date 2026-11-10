@@ -19,6 +19,10 @@ class DocxConversionError(Exception):
     """unoserver failed to convert the document or timed out."""
 
 
+class DocxConversionTimeoutError(DocxConversionError):
+    """unoserver did not return the PDF within the conversion timeout."""
+
+
 class _SingleAttemptTransport(xmlrpc.client.Transport):
     """XML-RPC transport with a timeout and no retry."""
 
@@ -62,7 +66,8 @@ def convert_docx_to_pdf(
     except xmlrpc.client.Fault as fault:
         raise DocxConversionError(f"unoserver could not convert the document: {fault.faultString}") from fault
     except TimeoutError as error:
-        raise DocxConversionError(f"unoserver did not return a PDF within {timeout_seconds} seconds") from error
+        message = f"LibreOffice did not finish converting the DOCX within {timeout_seconds:g} seconds"
+        raise DocxConversionTimeoutError(message) from error
     except (OSError, http.client.HTTPException, xmlrpc.client.ProtocolError) as error:
         raise UnoserverUnavailableError(f"unoserver is not answering on {address}: {error}") from error
     if not isinstance(pdf_bytes, bytes) or not pdf_bytes.startswith(PDF_SIGNATURE):
