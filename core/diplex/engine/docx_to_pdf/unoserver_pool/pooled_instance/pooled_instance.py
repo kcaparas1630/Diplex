@@ -43,6 +43,7 @@ class PooledInstance:
         unoserver_command: tuple[str, ...],
         ready_timeout_seconds: float,
         conversions_before_recycle: int,
+        first_life_conversions: int,
         pool_condition: threading.Condition,
     ) -> None:
         """Hold what the instance needs to start; nothing runs until start_keeper()."""
@@ -52,6 +53,7 @@ class PooledInstance:
         self._unoserver_command = unoserver_command
         self._ready_timeout_seconds = ready_timeout_seconds
         self._conversions_before_recycle = conversions_before_recycle
+        self._conversions_this_life = first_life_conversions  # shorter at first, so the pool's recycles don't line up
         self._condition = pool_condition
         self._conversion_count = 0  # successful conversions since this unoserver started
         self._state = InstanceState.STARTING
@@ -104,7 +106,7 @@ class PooledInstance:
             self._recycle(f"its conversion failed with {type(conversion_failure).__name__}")
         else:
             self._conversion_count += 1
-            if self._conversion_count >= self._conversions_before_recycle:
+            if self._conversion_count >= self._conversions_this_life:
                 self._recycle(f"it converted {self._conversion_count} documents")  # LibreOffice never gives memory back
             else:
                 self._set_state(InstanceState.IDLE)
@@ -125,6 +127,8 @@ class PooledInstance:
                     break
                 instance_logger.warning("recycling unoserver instance %d: %s", self.instance_index, recycle_reason)
                 self._kill_unoserver()  # the whole process group, so no soffice.bin keeps the UNO port
+                with self._condition:
+                    self._conversions_this_life = self._conversions_before_recycle  # only the first life is shortened
                 continue
             with self._condition:
                 if self._condition.wait_for(lambda: self._stopping, timeout=restart_delay_seconds):

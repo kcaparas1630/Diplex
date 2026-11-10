@@ -222,3 +222,40 @@ def test_a_recycled_instance_counts_from_zero_again(start_log):
 
     assert [len(set(pdf_documents[start : start + 2])) for start in (0, 2)] == [1, 1]
     assert len(set(pdf_documents)) == 3
+
+
+def test_first_lives_are_staggered_so_recycles_spread_out():
+    """With 4 instances and a count of 50, the first recycles come after 50, 38, 25 and 13 conversions."""
+    settings = UnoserverPoolSettings(instance_count=4, conversions_before_recycle=50)
+
+    assert [settings.first_life_conversions(instance_index) for instance_index in range(4)] == [50, 38, 25, 13]
+    assert UnoserverPoolSettings(instance_count=3, conversions_before_recycle=1).first_life_conversions(2) == 1
+
+
+def test_a_staggered_instance_uses_the_full_count_after_its_first_recycle(start_log):
+    """Instance 1 of 2 with a count of 4 is first recycled after 2 conversions, then after 4."""
+    unoserver_pool = UnoserverPool(
+        UnoserverPoolSettings(
+            instance_count=2,
+            conversions_before_recycle=4,
+            first_port=find_free_port_range(4),
+            unoserver_command=STAND_IN_UNOSERVER,
+        )
+    )
+    unoserver_pool.start()
+    try:
+        deadline = time.monotonic() + INSTANCE_START_SECONDS
+        while any(pooled_instance.state is not InstanceState.IDLE for pooled_instance in unoserver_pool.instances):
+            assert time.monotonic() < deadline, "the instances did not become idle"
+            time.sleep(0.02)
+        first_instance = unoserver_pool.instances[0]
+        with unoserver_pool._condition:  # hold instance 0 busy, so every conversion goes to instance 1
+            assert first_instance.claim_if_idle()
+        pdf_documents = [unoserver_pool.convert_docx_to_pdf(b"PK document %d" % number) for number in range(6)]
+        with unoserver_pool._condition:
+            first_instance.release(None)
+    finally:
+        unoserver_pool.stop()
+
+    assert [len(set(pdf_documents[:2])), len(set(pdf_documents[2:6]))] == [1, 1]
+    assert pdf_documents[1] != pdf_documents[2]
