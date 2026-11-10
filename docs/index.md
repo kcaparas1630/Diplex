@@ -17,6 +17,7 @@
 - [013 No network for LibreOffice](adr/013-no-network-for-libreoffice.md)
 - [014 Isolation review](adr/014-isolation-review.md)
 - [015 One page image size](adr/015-one-page-image-size.md)
+- [016 Playground stack](adr/016-playground-stack.md)
 
 ## [Self-Hosting](self-hosting.md)
 
