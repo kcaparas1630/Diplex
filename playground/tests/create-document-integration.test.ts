@@ -14,6 +14,7 @@ describe.skipIf(!localServicesConfigured)("createDocument on RustFS and Postgres
   const store: DocumentStore = {
     engine: { engineUrl: "http://unused", engineApiKey: undefined },
     serverClient: services.serverClient,
+    signingClient: services.signingClient,
     bucketName,
     folderPrefix: "playground",
     database: services.database,

@@ -52,6 +52,7 @@ export function getDocumentStore(): DocumentStore {
   return {
     engine: { engineUrl: services.settings.engineUrl, engineApiKey: services.settings.engineApiKey },
     serverClient: services.serverClient,
+    signingClient: services.signingClient,
     bucketName: services.settings.bucket.bucketName,
     folderPrefix: services.settings.bucket.folderPrefix,
     database: services.database,
