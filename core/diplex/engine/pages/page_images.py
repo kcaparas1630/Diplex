@@ -1,4 +1,4 @@
-"""Renders each page of a PDF to an image at 144 DPI, one page at a time."""
+"""Renders each page of a PDF to an image at 144 DPI, one page at a time, noting how much of it images cover."""
 
 import math
 from collections.abc import Iterator
@@ -7,6 +7,8 @@ import pypdfium2
 from PIL import Image
 
 from diplex.engine.pdf_loading import UnreadablePdfError, load_pdf_document
+
+from .page_content import IMAGE_COVERAGE_KEY, measure_image_coverage
 
 RENDER_SCALE = 2  # 144 DPI: PDF sizes are in points, 72 to the inch
 MAX_PAGE_PIXELS = 40_000_000  # above an A0 drawing (32 MP at 144 DPI); a 200-inch page would need 2.5 GB
@@ -43,13 +45,15 @@ def _refuse_pages_too_large(pdf_document: pypdfium2.PdfDocument) -> None:
 
 
 def _render_page(pdf_document: pypdfium2.PdfDocument, page_offset: int) -> Image.Image:
-    """Render one page at 144 DPI, then free PDFium's page and bitmap."""
+    """Render one page at 144 DPI, noting its image coverage on the image, then free PDFium's page and bitmap."""
     page = pdf_document[page_offset]
     try:
         bitmap = page.render(scale=RENDER_SCALE)  # turns the page by its /Rotate, as its size does
         try:
-            return bitmap.to_pil()  # copies PDFium's BGR pixels into a new RGB image, so the bitmap can be freed
+            page_image = bitmap.to_pil()  # copies PDFium's BGR pixels into a new RGB image, so the bitmap can be freed
         finally:
             bitmap.close()
+        page_image.info[IMAGE_COVERAGE_KEY] = measure_image_coverage(page)
+        return page_image
     finally:
         page.close()
