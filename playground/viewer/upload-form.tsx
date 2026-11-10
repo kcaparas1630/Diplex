@@ -1,10 +1,10 @@
-/** The upload form: sends a DOCX or PDF to the playground's server, which renders and stores it. */
+/** The upload form: sends a DOCX or PDF to the playground's server, which renders and stores it, then opens it. */
 "use client";
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-/** Upload the chosen file to /api/documents, then refresh the list, or show why it failed. */
+/** Upload the chosen file to /api/documents and open the stored document, or show why it failed. */
 export function UploadForm() {
   const router = useRouter();
   const [uploadStatus, setUploadStatus] = useState<string>("");
@@ -19,8 +19,8 @@ export function UploadForm() {
     const answerBody = (await answer.json()) as { id?: string; code?: string; message?: string };
     setUploading(false);
     if (answer.ok && answerBody.id) {
-      setUploadStatus("Stored.");
-      router.refresh(); // the home page lists it
+      setUploadStatus("");
+      router.push(`/documents/${answerBody.id}`);
     } else {
       setUploadStatus(`Not stored: ${answerBody.message ?? "unknown error"} (${answerBody.code ?? answer.status})`);
     }

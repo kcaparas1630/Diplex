@@ -8,3 +8,5 @@ export { InvalidUploadError, describeUploadFailure, readUploadedFile } from "./u
 export type { UploadFailure, UploadedFile } from "./upload-handling";
 export { DEFAULT_PAGES_PER_REQUEST, getDocumentPages } from "./document-pages";
 export type { PageRange, PageSource, ViewerPage } from "./document-pages";
+export { getOwnedDocument } from "./owned-document";
+export type { OwnedDocument } from "./owned-document";
