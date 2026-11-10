@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -63,18 +64,18 @@ def render_sample(engine_url: str, sample_path: Path) -> SampleResult:
 
 
 def post_document(engine_url: str, document_bytes: bytes) -> tuple[int, str, bytes]:
-    """POST the bytes as the document part of a multipart/form-data upload; return status, content type and body."""
+    """POST the bytes as the document part of an upload, with DIPLEX_API_KEY if set; return status, content type and body."""
     boundary = uuid.uuid4().hex
     request_body = (
         f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="upload"\r\n\r\n'.encode()
         + document_bytes
         + f"\r\n--{boundary}--\r\n".encode()
     )
-    request = urllib.request.Request(
-        f"{engine_url.rstrip('/')}/render",
-        data=request_body,
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-    )
+    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
+    api_key = os.environ.get("DIPLEX_API_KEY", "").strip()
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"  # the engine's key, when it was started with one (ADR 012)
+    request = urllib.request.Request(f"{engine_url.rstrip('/')}/render", data=request_body, headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
             return response.status, response.headers["Content-Type"], response.read()

@@ -72,6 +72,16 @@
               }
             }
           },
+          "401": {
+            "description": "unauthorized: the engine has DIPLEX_API_KEY set and the request didn't send it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderError"
+                }
+              }
+            }
+          },
           "413": {
             "description": "upload_too_large: over DIPLEX_MAX_UPLOAD_BYTES.",
             "content": {
@@ -122,7 +132,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          },
+          {}
+        ]
       }
     }
   },
@@ -211,6 +227,7 @@
         "type": "string",
         "enum": [
           "invalid_request",
+          "unauthorized",
           "upload_too_large",
           "unsupported_document_type",
           "unreadable_pdf",
@@ -271,6 +288,13 @@
         ],
         "title": "RenderResponseParts",
         "description": "A successful /render response's multipart/form-data parts, by name: what `await response.formData()` holds."
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "http",
+        "description": "The engine's DIPLEX_API_KEY. Only needed when the engine is started with one.",
+        "scheme": "bearer"
       }
     }
   }

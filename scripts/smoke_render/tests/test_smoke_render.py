@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.smoke_render import SampleResult, format_results_table, render_samples
+from scripts.smoke_render import SampleResult, format_results_table, post_document, render_samples
 
 BOUNDARY = "stand-in-boundary"
 
@@ -28,9 +28,11 @@ class StandInEngine(BaseHTTPRequestHandler):
     """Answers /render by what the upload starts with: %PDF two pages, PK a page and a PDF, anything else 415."""
 
     unavailable_answers_left = 0
+    received_headers: list[dict[str, str]] = []
 
     def do_POST(self) -> None:
         """Read the upload and answer as the engine would."""
+        StandInEngine.received_headers.append(dict(self.headers))
         upload = self.rfile.read(int(self.headers["Content-Length"]))
         document_bytes = upload.split(b"\r\n\r\n", 1)[1]
         manifest_pages = [{"index": 1, "width": 612.0, "height": 792.0}]
@@ -117,3 +119,14 @@ def test_the_table_has_a_row_per_sample_and_the_totals():
     assert "| report.pdf | 220 KB | 200 | ok | 2 | 254 KB | - | 0.5 s |" in table
     assert "| broken.docx | 18 KB | 422 | docx_conversion_failed | - | 0 KB | - | 0.2 s |" in table
     assert table.endswith("1 of 2 samples rendered, 2 pages, 0.7 s in all.\n")
+
+
+@pytest.mark.parametrize(("configured_key", "expected_authorization"), [("engine-key-0123456789", "Bearer engine-key-0123456789"), ("", None)])
+def test_the_engine_key_is_sent_when_set(engine_url, monkeypatch, configured_key, expected_authorization):
+    """With DIPLEX_API_KEY set, every upload carries it as a Bearer token; without it, no Authorization header."""
+    monkeypatch.setenv("DIPLEX_API_KEY", configured_key)
+    StandInEngine.received_headers.clear()
+
+    post_document(engine_url, b"%PDF-1.7 stand-in")
+
+    assert StandInEngine.received_headers[0].get("Authorization") == expected_authorization

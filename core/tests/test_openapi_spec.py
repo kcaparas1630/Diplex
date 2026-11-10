@@ -10,7 +10,7 @@ from diplex.definition import RenderErrorCode, RenderPart
 from diplex.openapi_export import write_openapi_spec
 
 PUBLISHED_SPEC_PATH = Path(__file__).resolve().parents[2] / "docs" / "openapi.json"
-ERROR_STATUSES = ["400", "413", "415", "422", "500", "503"]
+ERROR_STATUSES = ["400", "401", "413", "415", "422", "500", "503"]
 
 
 @pytest.fixture(scope="module")
