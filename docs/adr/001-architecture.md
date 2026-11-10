@@ -70,7 +70,7 @@ consumer app (server)
 
 ## 6. Rendering Pipeline (inside the Engine)
 
-> Decisions: [ADR 004](004-unoserver-pool.md) (unoserver), [ADR 011](011-unoserver-pool-dispatcher.md) (the pool), [ADR 005](005-fonts.md) (fonts), [convention 003](../code-convention/003-untrusted-input.md) (untrusted input)
+> Decisions: [ADR 004](004-unoserver-pool.md) (unoserver), [ADR 011](011-unoserver-pool-dispatcher.md) (the pool), [ADR 014](014-isolation-review.md) (isolation), [ADR 005](005-fonts.md) (fonts), [convention 003](../code-convention/003-untrusted-input.md) (untrusted input)
 
 - **DOCX to PDF:** LibreOffice driven by a pool of [unoserver](https://github.com/unoconv/unoserver) instances (MIT) that the engine starts, by default one per vCPU. Each instance keeps one LibreOffice running, handles one conversion at a time, has its own profile and temporary files, and binds only to localhost. A conversion takes an idle instance, waiting up to 30 s for one before 503 `converter_busy`, and times out after 120 s.
 - **Instances are recycled and supervised by the engine,** not by unoserver's flags: after 50 conversions (memory is not reclaimed after large files) and after any failed or timed-out conversion, between jobs, the instance's whole process group is killed, its profile and temporary files deleted, and a fresh instance started. A keeper thread restarts an instance that exits, since unoserver does not restart LibreOffice itself.

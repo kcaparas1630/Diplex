@@ -8,6 +8,13 @@ How to run the `diplex-core` image next to your app, and what you must keep in p
 - **Give it the memory the pool needs:** about 1 to 1.5 GB per unoserver instance, from the 2026-10-30 benchmark ([ADR 004](adr/004-unoserver-pool.md)), plus a few hundred MB for the API and page rendering.
 - **Stop it with `docker stop`.** The engine kills every LibreOffice process on the way out; it took under a second in CI.
 - **Health checks** use `GET /health`, which needs no key and no version header.
+- **Lock the container down.** CI runs the engine with all three of these on every pull request, so they are safe to add:
+
+  ```
+  docker run -d --name diplex-engine --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges diplex-core
+  ```
+
+- **Isolate every document if your users must not see each other's,** with `DIPLEX_CONVERSIONS_BEFORE_RECYCLE=1`: each DOCX then gets a fresh LibreOffice and profile, at about 5.5 s of restart per conversion and instance ([ADR 014](adr/014-isolation-review.md)). By default an instance converts 50 documents before it is replaced.
 
 ## Settings
 
