@@ -1,0 +1,61 @@
+# Starts the playground with everything it needs on this machine: the Diplex engine (built from the root Dockerfile,
+# on a network with no egress, ADR 013), RustFS as its bucket, Postgres as its database, and the playground itself.
+# Run `docker compose up --build` here, then open http://localhost:3000. Every credential below is for local use only.
+name: diplex-playground
+
+services:
+  engine:
+    build: ..
+    environment:
+      DIPLEX_API_KEY: ${DIPLEX_API_KEY:-local-playground-engine-key}
+    networks: [engine-only]
+
+  rustfs:
+    image: rustfs/rustfs:1.0.4
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:-playground}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:-playground-secret}
+    ports: ["127.0.0.1:9000:9000"]  # the browser fetches page images from here with presigned URLs
+    volumes: [rustfs-data:/data]
+    networks: [default]
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: playground
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-playground}
+      POSTGRES_DB: playground
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "playground"]
+      interval: 2s
+      retries: 30
+    networks: [default]
+
+  playground:
+    build: .
+    environment:
+      DIPLEX_ENGINE_URL: http://engine:8000
+      DIPLEX_API_KEY: ${DIPLEX_API_KEY:-local-playground-engine-key}
+      DATABASE_URL: postgres://playground:${POSTGRES_PASSWORD:-playground}@postgres:5432/playground
+      S3_ENDPOINT: http://rustfs:9000
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-playground}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-playground-secret}
+      S3_BUCKET: playground-documents
+      S3_PREFIX: playground
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      engine: { condition: service_started }
+      rustfs: { condition: service_started }
+      postgres: { condition: service_healthy }
+    networks: [default, engine-only]  # the only service on both: it reaches the engine, the engine reaches nothing
+
+networks:
+  engine-only:
+    internal: true  # no route out: LibreOffice can't reach the network (ADR 013)
+
+volumes:
+  rustfs-data:
+  postgres-data:

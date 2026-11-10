@@ -53,9 +53,12 @@ cd core && uv run pytest                       # engine tests; the unoserver, Li
 cd core && PATH=~/.venvs/unoserver/bin:$PATH uv run pytest tests/test_unoserver_pool_with_libreoffice.py   # the pool with real LibreOffice (Linux)
 cd core && uv run uvicorn diplex.api:app       # serves the engine API on 127.0.0.1:8000 (GET /health, POST /render)
 cd core && uv run python -m diplex.openapi_export ../docs/openapi.json   # rewrites the published OpenAPI spec after a contract change
+
+cd playground && docker compose up --build    # starts the engine, RustFS, Postgres and the playground on http://localhost:3000
+cd playground && pnpm install && pnpm typecheck && pnpm test && pnpm build   # the playground's checks, as CI runs them
 ```
 
-The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). The LibreOffice pool tests need LibreOffice, `python3-uno` and unoserver on PATH: `python3 -m venv --system-site-packages ~/.venvs/unoserver && ~/.venvs/unoserver/bin/pip install unoserver==3.7`. Add the playground commands here once it exists.
+The unoserver tests convert every DOCX in `samples/` (git-ignored; see Testing). The LibreOffice pool tests need LibreOffice, `python3-uno` and unoserver on PATH: `python3 -m venv --system-site-packages ~/.venvs/unoserver && ~/.venvs/unoserver/bin/pip install unoserver==3.7`.
 
 ## Working Agreements
 

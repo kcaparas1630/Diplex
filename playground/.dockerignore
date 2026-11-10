@@ -1,0 +1,4 @@
+# Keep local installs and build output out of the playground image's build context
+node_modules/
+.next/
+.env

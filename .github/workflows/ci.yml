@@ -1,5 +1,6 @@
-# Runs on every pull request and on main: the convention checker, the engine and script tests, and the engine image:
-# built, its unoserver pool tested with the image's own LibreOffice, then started and checked over HTTP. See convention 005.
+# Runs on every pull request and on main: the convention checker, the engine and script tests, the engine image (built,
+# its unoserver pool tested with the image's own LibreOffice, then started and checked over HTTP), and the playground.
+# See convention 005.
 name: CI
 
 on:
@@ -113,3 +114,33 @@ jobs:
           test "$(docker logs diplex-locked 2>&1 | grep -c 'ready in')" -ge 2
           curl -fsS http://127.0.0.1:8001/health
           docker stop diplex-locked
+
+  playground:
+    name: Playground
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: playground
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: playground/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: playground/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: One command starts the engine, RustFS, Postgres and the playground
+        run: |
+          docker compose up --build --detach --wait --wait-timeout 300
+          curl -fsS http://127.0.0.1:3000/ > /dev/null
+          docker compose ps
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes
