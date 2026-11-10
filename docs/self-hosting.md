@@ -4,6 +4,7 @@ How to run the `diplex-core` image next to your app, and what you must keep in p
 
 ## Running It
 
+- **Pull a versioned image:** `docker pull ghcr.io/kcaparas1630/diplex-core:1.2` follows the 1.2 line's patch releases, including security fixes ([convention 011](code-convention/011-releases.md)); `:1.2.3` pins one release.
 - **One container, port 8000.** `docker run -d --name diplex-engine diplex-core` starts the API; the engine starts its pool of unoserver instances (LibreOffice) inside, and a DOCX sent in the first few seconds waits for them.
 - **Give it the memory the pool needs:** about 1 to 1.5 GB per unoserver instance, from the 2026-10-30 benchmark ([ADR 004](adr/004-unoserver-pool.md)), plus a few hundred MB for the API and page rendering.
 - **Stop it with `docker stop`.** The engine kills every LibreOffice process on the way out; it took under a second in CI.

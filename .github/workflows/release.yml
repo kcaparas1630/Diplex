@@ -1,0 +1,46 @@
+# Publishes a versioned engine image when a release tag (v1.2.3) is pushed: checks the tag against the repository's
+# versions, builds the root Dockerfile, and pushes ghcr.io/<owner>/diplex-core:1.2.3 and :1.2. See convention 011.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  engine-image:
+    name: Publish the engine image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: The tag matches core/pyproject.toml and docs/openapi.json
+        run: python -m scripts.release_check "${GITHUB_REF_NAME}"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: image-tags
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/diplex-core
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - name: Build and push the image from the root Dockerfile
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.image-tags.outputs.tags }}
+          labels: ${{ steps.image-tags.outputs.labels }}
+          provenance: true
+          cache-from: type=gha
