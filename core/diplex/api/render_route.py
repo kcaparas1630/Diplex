@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 from starlette.status import (
     HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -36,6 +36,7 @@ from diplex.engine import (
     render_pdf,
 )
 
+from .api_key import require_api_key
 from .form_data import FormDataPart, encode_form_data
 from .job_log import RenderJob, log_unexpected_error, logged_render_job
 
@@ -55,6 +56,7 @@ ERROR_RESPONSES = {
 RESPONSES_IN_SPEC = {
     200: {"model": RenderResponseParts, "description": "The page sizes and page images, as multipart/form-data."},
     400: {"model": RenderError, "description": "invalid_request: a body that isn't readable multipart/form-data."},
+    401: {"model": RenderError, "description": "unauthorized: the engine has DIPLEX_API_KEY set and the request didn't send it."},
     413: {"model": RenderError, "description": "upload_too_large: over DIPLEX_MAX_UPLOAD_BYTES."},
     415: {"model": RenderError, "description": "unsupported_document_type: not a PDF or a DOCX."},
     422: {
@@ -79,6 +81,7 @@ FIXED_MESSAGES = {DocxConversionError: "LibreOffice could not load or convert th
     "/render",
     summary="Render each page of a DOCX or PDF as a WebP image",
     responses=RESPONSES_IN_SPEC,
+    dependencies=[Depends(require_api_key)],
     openapi_extra={
         "requestBody": {"content": {"multipart/form-data": {"encoding": {"document": {"contentType": DOCUMENT_PART_TYPES}}}}}
     },

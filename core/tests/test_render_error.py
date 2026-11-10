@@ -16,6 +16,7 @@ def test_codes_are_the_ones_consumers_branch_on():
     """The codes so far, as sent on the wire."""
     assert [code.value for code in RenderErrorCode] == [
         "invalid_request",
+        "unauthorized",
         "upload_too_large",
         "unsupported_document_type",
         "unreadable_pdf",

@@ -15,3 +15,4 @@ Each record captures one decision: the context, what was decided, and what follo
 | [009](009-engine-only.md) | Diplex is the engine only: no SDK, no store, self-hosted | Accepted | 2026-11-03 |
 | [010](010-render-response-format.md) | The render response is multipart/form-data | Accepted | 2026-11-03 |
 | [011](011-unoserver-pool-dispatcher.md) | The engine runs, dispatches and recycles the unoserver pool | Accepted | 2026-11-07 |
+| [012](012-api-key-and-version.md) | An optional Bearer key and a required API version header | Accepted | 2026-11-10 |

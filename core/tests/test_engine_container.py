@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 ENGINE_URL = os.environ.get("DIPLEX_ENGINE_URL", "").rstrip("/")
+ENGINE_API_KEY = os.environ.get("DIPLEX_API_KEY", "").strip()  # the container's key, when it was started with one
 SAMPLES_FOLDER = Path(__file__).resolve().parents[2] / "samples"
 UNOSERVER_START_SECONDS = 60  # a DOCX waits for LibreOffice to start, but can still get 503 (a busy pool, or no wait set)
 
@@ -28,16 +29,17 @@ def _sample_bytes(sample_name: str) -> bytes:
 
 
 def _post_render(document_bytes: bytes) -> tuple[int, str, bytes]:
-    """POST the bytes to /render as the document part, returning the status, content type and body."""
+    """POST the bytes to /render as the document part, with DIPLEX_API_KEY if set; return the status, content type and body."""
     boundary = uuid.uuid4().hex
     body = (
         f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="upload"\r\n\r\n'.encode()
         + document_bytes
         + f"\r\n--{boundary}--\r\n".encode()
     )
-    request = urllib.request.Request(
-        f"{ENGINE_URL}/render", data=body, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
-    )
+    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
+    if ENGINE_API_KEY:
+        headers["Authorization"] = f"Bearer {ENGINE_API_KEY}"
+    request = urllib.request.Request(f"{ENGINE_URL}/render", data=body, headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=300) as response:
             return response.status, response.headers["Content-Type"], response.read()

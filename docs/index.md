@@ -13,6 +13,7 @@
 - [009 Engine only](adr/009-engine-only.md)
 - [010 Render response format](adr/010-render-response-format.md)
 - [011 unoserver pool dispatcher](adr/011-unoserver-pool-dispatcher.md)
+- [012 API key and version](adr/012-api-key-and-version.md)
 
 ## [OpenAPI Spec](openapi.json)
 
