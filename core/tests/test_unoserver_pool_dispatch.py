@@ -89,12 +89,12 @@ def test_an_instance_never_converts_two_documents_at_once(conversion_time, monke
     calls_lock = threading.Lock()
     real_conversion = unoserver_pool_module.convert_docx_to_pdf
 
-    def timed_conversion(docx_bytes, port):
+    def timed_conversion(docx_bytes, **conversion_options):
         """Convert as the pool would, recording when the call to each port started and ended."""
         call_started = time.monotonic()
-        pdf_bytes = real_conversion(docx_bytes, port=port)
+        pdf_bytes = real_conversion(docx_bytes, **conversion_options)
         with calls_lock:
-            calls_by_port.setdefault(port, []).append((call_started, time.monotonic()))
+            calls_by_port.setdefault(conversion_options["port"], []).append((call_started, time.monotonic()))
         return pdf_bytes
 
     monkeypatch.setattr(unoserver_pool_module, "convert_docx_to_pdf", timed_conversion)
