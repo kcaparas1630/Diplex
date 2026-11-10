@@ -46,13 +46,13 @@ def _post_render(document_bytes: bytes, file_name: str = "upload.pdf", content_t
         return client.post("/render", files={"document": (file_name, document_bytes, content_type)})
 
 
-def _word_package(extra_part: str | None = None) -> bytes:
+def _word_package(extra_part: str | None = None, extra_part_bytes: bytes = b"stand-in part") -> bytes:
     """A zip that the type check takes for a DOCX: a [Content_Types].xml naming a Word document part, and any extra part."""
     zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w") as package:
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as package:
         package.writestr("[Content_Types].xml", WORD_CONTENT_TYPES)
         if extra_part is not None:
-            package.writestr(extra_part, b"stand-in part")
+            package.writestr(extra_part, extra_part_bytes)
     return zip_buffer.getvalue()
 
 
@@ -215,6 +215,18 @@ def test_a_docx_with_macros_gets_422_without_being_converted():
 
     assert response.status_code == 422
     assert _error(response).code is RenderErrorCode.MACROS_NOT_ALLOWED
+    assert converted_documents == []
+
+
+def test_a_zip_bomb_docx_gets_422_without_being_converted():
+    """A DOCX with a part that expands thousands of times gets 422 docx_limits_exceeded, before conversion."""
+    converted_documents = []
+    zip_bomb = _word_package(extra_part="word/document.xml", extra_part_bytes=bytes(8 * 1024 * 1024))
+
+    response = _post_render(zip_bomb, file_name="report.docx", docx_conversion=converted_documents.append)
+
+    assert response.status_code == 422
+    assert _error(response).code is RenderErrorCode.DOCX_LIMITS_EXCEEDED
     assert converted_documents == []
 
 

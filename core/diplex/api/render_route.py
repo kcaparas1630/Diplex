@@ -22,9 +22,11 @@ from diplex.definition import (
 )
 from diplex.engine import (
     ConverterBusyError,
+    DamagedDocxError,
     DocumentType,
     DocxConversionError,
     DocxConversionTimeoutError,
+    DocxLimitsExceededError,
     MacroEnabledDocumentError,
     PageTooLargeError,
     RenderedDocument,
@@ -50,6 +52,8 @@ ERROR_RESPONSES = {
     UnreadablePdfError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.UNREADABLE_PDF),
     PageTooLargeError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.PAGE_TOO_LARGE),
     MacroEnabledDocumentError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.MACROS_NOT_ALLOWED),
+    DocxLimitsExceededError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_LIMITS_EXCEEDED),
+    DamagedDocxError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_CONVERSION_FAILED),
     DocxConversionError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_CONVERSION_FAILED),
     DocxConversionTimeoutError: (HTTP_422_UNPROCESSABLE_CONTENT, RenderErrorCode.DOCX_CONVERSION_FAILED),
     UnoserverUnavailableError: (HTTP_503_SERVICE_UNAVAILABLE, RenderErrorCode.CONVERTER_UNAVAILABLE),
@@ -68,7 +72,8 @@ RESPONSES_IN_SPEC = {
     415: {"model": RenderError, "description": "unsupported_document_type: not a PDF or a DOCX."},
     422: {
         "model": RenderError,
-        "description": "invalid_request, unreadable_pdf, page_too_large, macros_not_allowed or docx_conversion_failed.",
+        "description": "invalid_request, unreadable_pdf, page_too_large, docx_limits_exceeded, macros_not_allowed or "
+        "docx_conversion_failed.",
     },
     500: {"model": RenderError, "description": "internal_error: the message names the job in the engine's log."},
     503: {
