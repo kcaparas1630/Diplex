@@ -12,7 +12,7 @@
           "health"
         ],
         "summary": "Check that the engine is up",
-        "description": "Report that the engine is up.",
+        "description": "Report that the engine is up, on the event loop, so busy render threads can't hold it up.",
         "operationId": "report_health_health_get",
         "responses": {
           "200": {
