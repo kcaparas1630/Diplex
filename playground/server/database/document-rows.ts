@@ -58,6 +58,15 @@ export async function findOwnedDocumentRow(database: SqlQueries, documentId: str
   return found.rows.length === 1 ? toDocumentRow(found.rows[0]) : null;
 }
 
+/** Set the owner's document's deletion time and return its folder, or null if it isn't theirs or is already deleted. */
+export async function markDocumentDeleted(database: SqlQueries, documentId: string, ownerId: string): Promise<string | null> {
+  const marked = await database.query(
+    "UPDATE documents SET deleted_at = now() WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL RETURNING folder",
+    [documentId, ownerId],
+  );
+  return marked.rows.length === 1 ? String(marked.rows[0].folder) : null;
+}
+
 /** Turn a database row's columns into a DocumentRow. */
 export function toDocumentRow(columns: Record<string, unknown>): DocumentRow {
   return {

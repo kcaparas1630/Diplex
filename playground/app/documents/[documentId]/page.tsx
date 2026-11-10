@@ -1,9 +1,9 @@
-/** A document's page: its name and type, download links, and the viewer laid out from its page sizes; only its owner sees it. */
+/** A document's page: its name and type, download links, a delete button, and the viewer laid out from its page sizes; only its owner sees it. */
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { getOwnedDocument, getPlaygroundServices, readPlaygroundUser } from "../../../server";
-import { DocumentViewer } from "../../../viewer";
+import { DeleteButton, DocumentViewer } from "../../../viewer";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,8 @@ export default async function DocumentPage({ params }: { params: Promise<{ docum
             {" "}
             · <a href={`/api/documents/${ownedDocument.id}/download?file=original`}>Download original DOCX</a>
           </>
-        ) : null}
+        ) : null}{" "}
+        · <DeleteButton documentId={ownedDocument.id} fileName={ownedDocument.fileName} />
       </p>
       <DocumentViewer documentId={ownedDocument.id} pageSizes={ownedDocument.pageSizes} />
     </>
