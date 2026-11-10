@@ -1,6 +1,13 @@
 """The rendering steps: checks/ tells a PDF from a DOCX, docx_to_pdf/ converts a DOCX with the unoserver pool, pdf_loading/ loads a PDF, and pages/ reads and renders its pages."""
 
-from .checks import DocumentType, MacroEnabledDocumentError, UnsupportedDocumentError, detect_document_type
+from .checks import (
+    DamagedDocxError,
+    DocumentType,
+    DocxLimitsExceededError,
+    MacroEnabledDocumentError,
+    UnsupportedDocumentError,
+    detect_document_type,
+)
 from .docx_to_pdf import (
     ConverterBusyError,
     DocxConversionError,
@@ -17,9 +24,11 @@ from .pages import PageTooLargeError, UnreadablePdfError
 
 __all__ = [
     "ConverterBusyError",
+    "DamagedDocxError",
     "DocumentType",
     "DocxConversionError",
     "DocxConversionTimeoutError",
+    "DocxLimitsExceededError",
     "InstanceState",
     "MacroEnabledDocumentError",
     "PageTooLargeError",

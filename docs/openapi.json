@@ -123,7 +123,7 @@
             }
           },
           "422": {
-            "description": "invalid_request, unreadable_pdf, page_too_large, macros_not_allowed or docx_conversion_failed.",
+            "description": "invalid_request, unreadable_pdf, page_too_large, docx_limits_exceeded, macros_not_allowed or docx_conversion_failed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -247,6 +247,7 @@
           "unsupported_document_type",
           "unreadable_pdf",
           "page_too_large",
+          "docx_limits_exceeded",
           "macros_not_allowed",
           "docx_conversion_failed",
           "converter_unavailable",

@@ -1,6 +1,7 @@
 """Tests render_pdf: page sizes and WebP images from one PDFium pass, under the PDFium lock."""
 
 import io
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -19,6 +20,15 @@ def _sample_bytes(sample_name: str) -> bytes:
         pytest.skip(f"{sample_name} is not in {SAMPLES_FOLDER}")
     return sample_path.read_bytes()
 
+
+
+def _stand_in_docx() -> bytes:
+    """A small zip shaped like a DOCX, so it passes the zip and macro checks before the stand-in conversion."""
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as package:
+        package.writestr("[Content_Types].xml", "<Types/>")
+        package.writestr("word/document.xml", "<w:document/>")
+    return zip_buffer.getvalue()
 
 def test_a_real_pdf_gives_a_size_and_an_image_per_page():
     """The IRS form gives two US Letter page sizes and two WebP images of 1224 x 1584 px."""
@@ -82,7 +92,7 @@ def test_a_docx_is_rendered_from_the_pdf_it_became():
         lock_held_while_converting.append(PDFIUM_LOCK.locked())
         return converted_pdf
 
-    rendered_document = render_docx(b"PK stand-in DOCX", fake_convert_docx_to_pdf)
+    rendered_document = render_docx(_stand_in_docx(), fake_convert_docx_to_pdf)
 
     assert rendered_document.converted_pdf == converted_pdf
     assert rendered_document.page_sizes == render_pdf(converted_pdf).page_sizes

@@ -5,7 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from diplex.definition import PageSize
-from diplex.engine.checks import reject_macro_enabled_docx
+from diplex.engine.checks import check_docx_zip_limits, reject_macro_enabled_docx
 from diplex.engine.pages import PageWebp, encode_page_webps, read_page_sizes, render_page_images
 
 # PDFium must never take calls from two threads at once, even for different documents (pypdfium2's docs), and FastAPI
@@ -32,6 +32,7 @@ def render_pdf(pdf_bytes: bytes) -> RenderedDocument:
 
 def render_docx(docx_bytes: bytes, convert_docx_to_pdf: Callable[[bytes], bytes]) -> RenderedDocument:
     """Check the DOCX, convert it to PDF with the given converter, then render that PDF, so images and PDF match page for page."""
+    check_docx_zip_limits(docx_bytes)  # before anything else unzips it
     reject_macro_enabled_docx(docx_bytes)  # before LibreOffice ever opens it
     converted_pdf = convert_docx_to_pdf(docx_bytes)  # outside the PDFium lock: LibreOffice is a separate process
     rendered_pdf = render_pdf(converted_pdf)
